@@ -1,0 +1,379 @@
+/* =================================================================== */
+/* Custom Styles for Bimbel Website - FINAL COMPLETE & POLISHED      */
+/* User's styles + Pill Buttons + Scrolling Navbar + Layout Fixes    */
+/* =================================================================== */
+
+/* 1. UMUM & FONT (DARI ANDA)
+-------------------------------------------------------------------*/
+body {
+    font-family: 'Open Sans', sans-serif;
+    color: #e5e7eb;
+    background-color: #1a1a1a;
+}
+a {
+    color: #ffc107;
+    text-decoration: none;
+}
+a:hover {
+    color: #ffa000;
+}
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', sans-serif;
+    color: #ffffff;
+}
+
+.navbar-custom {
+    background-color: transparent; /* Awalnya transparan */
+    box-shadow: none;
+    font: 600 0.875rem/0.875rem "Montserrat", sans-serif;
+    transition: all 0.2s;
+    padding: 1.5rem;
+}
+.navbar-custom.top-nav-collapse {
+    background-color: rgba(26, 26, 26, 0.9); /* Gelap transparan saat scroll */
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 0.0625rem 0.375rem 0 rgba(0, 0, 0, 0.05);
+    padding: 0.5rem 1.5rem;
+}
+.navbar-custom .nav-item .nav-link {
+    color: #ffffff; /* Teks putih */
+}
+.navbar-custom .nav-item .nav-link:hover {
+    color: #ffc107; /* Warna kuning saat hover */
+}
+.navbar-custom.top-nav-collapse .nav-item .nav-link {
+    color: #e5e7eb;
+}
+.navbar-custom.top-nav-collapse .nav-item .nav-link:hover {
+    color: #ffc107;
+}
+.navbar-custom {
+    background-color: transparent; /* Awalnya transparan */
+    box-shadow: none;
+    font: 600 0.875rem/0.875rem "Montserrat", sans-serif;
+    transition: all 0.2s;
+    padding: 1.5rem 1.5rem;
+}
+/* State saat navbar di-scroll */
+.navbar-custom.top-nav-collapse {
+    background-color: rgba(26, 26, 26, 0.9); /* Gelap transparan */
+    -webkit-backdrop-filter: blur(10px); /* Efek blur untuk browser modern */
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0.0625rem 0.375rem 0 rgba(0, 0, 0, 0.05);
+    padding: 0.5rem 1.5rem;
+}
+.navbar-custom .nav-item .nav-link {
+    color: #ffffff; /* Teks putih saat transparan */
+    transition: all 0.2s ease;
+}
+.navbar-custom .nav-item .nav-link:hover,
+.navbar-custom .nav-item .nav-link.active {
+    color: #ffc107; /* Aksen kuning saat hover */
+}
+/* Teks link saat navbar di-scroll */
+.navbar-custom.top-nav-collapse .nav-item .nav-link {
+    color: #e5e7eb;
+}
+.navbar-custom.top-nav-collapse .nav-item .nav-link:hover,
+.navbar-custom.top-nav-collapse .nav-item .nav-link.active {
+    color: #ffc107;
+}
+
+/* 3. TOMBOL BERBENTUK PIL (GAYA ASLI + TEMA ANDA)
+-------------------------------------------------------------------*/
+.btn-solid-lg {
+    display: inline-block;
+    padding: 1.375rem 2.625rem;
+    border-radius: 2rem;
+    background-color: #ffc107;
+    background-color: #ffc107;
+    color: #1a1a1a;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+}
+.btn-solid-lg:hover {
+    background-color: transparent;
+    color: #ffc107;
+}
+.btn-outline-lg {
+    display: inline-block;
+    padding: 1.375rem 2.625rem; /* Padding asli untuk bentuk pil */
+    border: 0.125rem solid #ffffff;
+    border-radius: 2rem; /* KUNCI: Membuatnya jadi pil */
+    background-color: transparent;
+    color: #ffffff;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+}
+.btn-outline-lg:hover {
+    background-color: #ffffff;
+    color: #1a1a1a;
+}
+.form-control-submit-button {
+    display: inline-block;
+    width: 100%;
+    padding: 1.1rem 0;
+    border-radius: 2rem; /* Membuat bentuk pil */
+    background-color: #ffc107;
+    color: #1a1a1a;
+    font-weight: 700;
+    transition: all 0.2s ease-in-out;
+    border: 0.125rem solid #ffc107;
+}
+.form-control-submit-button:hover {
+    background-color: transparent;
+    color: #ffc107;
+}
+
+/* 4. HEADER & SLIDER (LAYOUT ASLI + GAYA ANDA)
+-------------------------------------------------------------------*/
+.header {
+    padding-top: 8rem;
+    padding-bottom: 40%; /* KUNCI: Jarak dinamis untuk slider */
+    background-color: #1a1a1a;
+    text-align: center;
+    position: relative; /* Penting untuk posisi slider */
+}
+.header .text-container h1 {
+    font-size: 3rem; margin-bottom: 1.5rem;
+}
+.header .text-container .p-large {
+    font-size: 1.25rem; margin-bottom: 2.5rem;
+}
+
+/* Outer Container (untuk Documentation dan Image Slider) - LAYOUT ASLI */
+.outer-container {
+    position: absolute;
+    right: 0;
+    bottom: -2rem;
+    left: 0;
+    margin: 0 auto;
+    width: 100%;
+}
+.outer-container .h2-heading {
+    color: #ffffff; margin-bottom: 3rem;
+}
+.slider-container {
+    max-width: 90%; margin: 0 auto;
+}
+.image-slider-1 .swiper-container {
+    width: 80%;
+}
+
+/* =================================================================== */
+/* ATURAN RESPONSIVE FINAL (GABUNGAN)                                  */
+/* =================================================================== */
+/* Untuk Mobile */
+@media (max-width: 767px) {
+    .header .text-container h1 { font-size: 2.25rem; }
+    .header .text-container .p-large { font-size: 1rem; }
+    .basic-2 .swiper-slide { flex-direction: column; text-align: center; }
+    .basic-2 .image-wrapper { margin-right: 0; margin-bottom: 1rem; }
+    .basic-2 .text-wrapper { max-width: 90%; text-align: center; }
+}
+
+/* Untuk Tablet */
+@media (min-width: 768px) {
+    .header { padding-top: 9rem; }
+    .header .outer-container { bottom: -4rem; }
+    .form-1 { padding-top: 9rem; }
+}
+
+/* Untuk Desktop Kecil */
+@media (min-width: 992px) {
+    .header .outer-container { width: 60rem; }
+    .form-1 { padding-top: 10rem; }
+}
+
+/* Untuk Desktop Besar */
+@media (min-width: 1200px) {
+    .header { padding-bottom: 31rem; }
+    .header .outer-container { width: 69.375rem; bottom: -6rem; }
+    .form-1 { padding-top: 12rem; }
+}
+
+/* Sisa CSS Anda (Form, Testimoni, Visi Misi, Footer) tetap sama */
+
+/* 5. FORM PENDAFTARAN & KONTAK (GAYA DARI ANDA)
+-------------------------------------------------------------------*/
+.form-1, .form-3 {
+    background: linear-gradient(to bottom right, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url('../images/header-background.jpg') center center no-repeat;
+    padding-bottom: 6rem;
+}
+.form-1 {
+    padding-top: 6rem;
+}
+.form-1 .text-container h2, .form-3 .text-container h2 {
+    margin-bottom: 1.5rem;
+}
+.form-1 .text-container p, .form-3 .text-container p {
+    margin-bottom: 2rem;
+    color: #ffc107;
+}
+.form-1 .text-container ul, .form-3 .text-container ul {
+    list-style: none;
+    padding: 0;
+    color: #ffffff;
+}
+.form-1 .text-container .media, .form-3 .text-container .media {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+.form-1 .text-container .media i, .form-3 .text-container .media i {
+    color: #ffffff;
+    margin-right: 0rem;
+    font-size: 1rem;
+}
+.form-1 .form-container, .form-3 .form-container {
+    background-color: #1f1f1f;
+    padding: 2.5rem;
+    border-radius: 0.5rem;
+}
+.form-1 .form-group, .form-3 .form-group {
+    margin-bottom: 1.5rem;
+    position: relative;
+
+}
+.form-3 .form-control-input,
+.form-3 .form-control-textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #3a3a3a;      /* <- Garis tepi (border) */
+    border-radius: 0.25rem;         /* <- Kelengkungan sudut */
+    background-color: #2d2d2d;      /* <- Warna latar belakang kolom isian */
+    color: #ffffff;                 /* <- Warna teks yang Anda ketik */
+    font-size: 1rem;
+}
+
+/* Ini adalah gaya saat Anda MENGKLIK kolom isiannya */
+.form-3 .form-control-input:focus,
+.form-3 .form-control-textarea:focus {
+    border-color: #ffc107;          /* <- Warna border menjadi kuning */
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25); /* <- Efek bayangan "menyala" */
+}
+/* Tombol Submit di Form - GAYA PIL */
+.form-1 .form-control-submit-button,
+.form-3 .form-control-submit-button {
+    /* Meng-copy gaya dari .btn-solid-lg */
+    width: 100%;
+    margin-top: 1rem;
+    padding: 1.375rem 2.625rem;
+    border-radius: 2rem;
+    background-color: #ffc107;
+    color: #1a1a1a;
+    font-weight: 700;
+    border: 0.125rem solid #ffc107;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+.form-3 .form-control-submit-button:hover,
+.form-3 .form-control-submit-button:hover {
+    background-color: transparent;
+    color: #ffc107;
+}
+.form-1 .label-control, .form-3 .label-control {
+    position: absolute;
+    top: 0.75rem;
+    left: 1rem;
+    color: #9ca3af;
+    pointer-events: none;
+    transition: all 0.2s ease-in-out;
+}
+.form-1 .form-control-input:focus + .label-control,
+.form-1 .form-control-input:not(:placeholder-shown) + .label-control,
+.form-1 .form-control-textarea:focus + .label-control,
+.form-1 .form-control-textarea:not(:placeholder-shown) + .label-control {
+    top: -0.75rem;
+    left: 0.5rem;
+    font-size: 0.75rem;
+    color: #ffbf00;
+    background-color: #1f1f1f;
+    padding: 0 0.25rem;
+}
+.form-1 .form-control-input,
+.form-1 .form-control-textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #3a3a3a;      /* <- Garis tepi (border) */
+    border-radius: 0.25rem;         /* <- Kelengkungan sudut */
+    background-color: #2d2d2d;      /* <- Warna latar belakang kolom isian */
+    color: #ffffff;                 /* <- Warna teks yang Anda ketik */
+    font-size: 1rem;
+}
+
+/* Ini adalah gaya saat Anda MENGKLIK kolom isiannya */
+.form-1 .form-control-input:focus,
+.form-1 .form-control-textarea:focus {
+    border-color: #ffc107;          /* <- Warna border menjadi kuning */
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25); /* <- Efek bayangan "menyala" */
+}
+
+/* 6. TESTIMONI (GAYA DARI ANDA)
+-------------------------------------------------------------------*/
+.basic-2 {
+    background-color: #1f1f1f;
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+    text-align: center;
+}
+.basic-2 h2 { margin-bottom: 3rem; }
+.basic-2 .swiper-slide { display: flex; flex-direction: row; align-items: center; justify-content: center; padding: 0 1rem; }
+.basic-2 .image-wrapper { width: 100px; height: 100px; border-radius: 50%; overflow: hidden; margin-right: 1.5rem; flex-shrink: 0; border: 3px solid #ffc107; }
+.basic-2 .image-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+.basic-2 .text-wrapper { text-align: left; max-width: 60%; }
+.basic-2 .testimonial-text { font-style: italic; margin-bottom: 0.5rem; }
+.basic-2 .testimonial-author { font-weight: 600; font-size: 0.95rem; }
+
+/* 7. VISI, MISI, TUJUAN (GAYA DARI ANDA)
+-------------------------------------------------------------------*/
+.cards-1 { padding-top: 4rem; padding-bottom: 4rem; background-color: #1f1f1f; }
+.cards-1 .h2-heading { text-align: center; margin-bottom: 3rem; }
+.visi-paragraph { text-align: center; font-size: 1.125rem; line-height: 1.8; max-width: 800px; margin: 0 auto 4rem auto; color: #ffc107; }
+.point-list ul { list-style: none; padding: 0; margin: 0 auto 4rem auto; max-width: 800px; }
+.point-list li { background-color: #2d2d2d; padding: 1rem 1.5rem; margin-bottom: 1rem; border-radius: 0.25rem; text-align: left; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); }
+
+/* 8. FOOTER & COPYRIGHT (GAYA DARI ANDA)
+-------------------------------------------------------------------*/
+.footer { background-color: #1a1a1a; padding-top: 3rem; padding-bottom: 1rem; }
+.copyright { background-color: #121212; padding: 1.5rem 0; text-align: center; font-size: 0.85rem; color: #9ca3af; }
+
+/* 9. ATURAN RESPONSIVE FINAL (GABUNGAN GAYA ANDA + LAYOUT ASLI)
+-------------------------------------------------------------------*/
+@media (max-width: 767px) {
+    .header .text-container h1 { font-size: 2.25rem; }
+    .basic-2 .swiper-slide { flex-direction: column; text-align: center; }
+    .basic-2 .image-wrapper { margin-right: 0; margin-bottom: 1rem; }
+    .basic-2 .text-wrapper { max-width: 90%; text-align: center; }
+}
+@media (min-width: 768px) {
+    .header { padding-top: 9rem; }
+    .header .outer-container { bottom: -4rem; }
+    .form-1 { padding-top: 9rem; }
+}
+@media (min-width: 992px) {
+    .header .swiper-container { width: 100%; }
+    .header .outer-container { width: 60rem; }
+    .form-1 { padding-top: 10rem; }
+}
+@media (min-width: 1200px) {
+    .header { padding-bottom: 31rem; }
+    .header .outer-container { width: 69.375rem; bottom: -6rem; }
+    .form-1 { padding-top: 12rem; }
+}
+/* =================================================================== */
+/* AUTHENTICATION PAGE STYLES                                        */
+/* =================================================================== */
+
+.input-error-message ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: #ef4444; /* Warna merah untuk error */
+}

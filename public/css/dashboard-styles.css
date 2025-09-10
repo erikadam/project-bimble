@@ -1,0 +1,82 @@
+/* =================================================================== */
+/* STYLES FOR GURU DASHBOARD - MEMPERTAHANKAN SEMUA FUNGSI ASLI        */
+/* =================================================================== */
+
+/* --- Fondasi & Latar Belakang --- */
+body { background-color: #1a1a1a; color: #e5e7eb; font-family: 'Open Sans', sans-serif; }
+.main-wrapper { min-height: 100vh; background-color: #1a1a1a; }
+
+/* --- Header Halaman --- */
+.page-header { background-color: #1f1f1f; border-bottom: 1px solid #3a3a3a; padding: 1rem 0; }
+.page-header h2 { font-size: 1.25rem; font-weight: 600; color: #ffffff; margin: 0; }
+.page-header .container-fluid { padding: 0 2rem; }
+
+/* --- Konten Utama --- */
+.content-wrapper { padding: 2rem; }
+
+/* === STYLING UNTUK navigation.blade.php ASLI ANDA === */
+nav[x-data] { background-color: #1f1f1f !important; border-bottom: 1px solid #3a3a3a !important; }
+.max-w-7xl { max-width: 100% !important; padding: 0 1.5rem !important; }
+.h-16 { height: 4rem !important; }
+.flex { display: flex !important; }
+.justify-between { justify-content: space-between !important; }
+.items-center { align-items: center !important; }
+.shrink-0 { flex-shrink: 0 !important; }
+.hidden { display: none !important; }
+@media (min-width: 640px) {
+    .sm\:flex { display: flex !important; }
+    .sm\:hidden { display: none !important; }
+    .sm\:-my-px { margin-top: -1px; margin-bottom: -1px; }
+    .sm\:ms-10 { margin-left: 2.5rem !important; }
+    .sm\:ms-6 { margin-left: 1.5rem !important; }
+}
+.space-x-8 > :not([hidden]) ~ :not([hidden]) { margin-left: 2rem; }
+
+/* Logo */
+.fill-current.text-gray-800.dark\:text-gray-200 { fill: #ffc107 !important; height: 2.25rem; width: auto; }
+
+/* Link Navigasi */
+.border-transparent { border-color: transparent !important; }
+.text-gray-500, .dark\:text-gray-400 { color: #a0a0a0 !important; }
+.hover\:text-gray-700:hover, .dark\:hover\:text-gray-300:hover { color: #e5e7eb !important; }
+.hover\:border-gray-300:hover, .dark\:hover\:border-gray-700:hover { border-color: #555 !important; }
+/* Link Aktif */
+.border-indigo-400.dark\:border-gray-700, .focus\:border-gray-700 {
+    border-color: #ffc107 !important;
+    color: #ffffff !important;
+}
+
+/* Dropdown */
+.rounded-md { border-radius: 0.375rem; }
+.dark\:bg-gray-800 { background-color: #1f1f1f !important; }
+.dark\:bg-gray-700 { background-color: #2d2d2d !important; border: 1px solid #3a3a3a !important; }
+.dark\:hover\:bg-gray-600:hover { background-color: #3a3a3a !important; }
+.dark\:text-gray-200 { color: #e5e7eb !important; }
+.dark\:text-gray-200:hover { color: #ffc107 !important; }
+.dark\:text-gray-500 { color: #a0a0a0 !important; }
+
+/* Hamburger */
+.dark\:hover\:bg-gray-900:hover { background-color: #2d2d2d !important; }
+.dark\:hover\:text-gray-400:hover { color: #e5e7eb !important; }
+.dark\:border-gray-600 { border-color: #3a3a3a !important; }
+
+/* === STYLING UNTUK dashboard.blade.php ASLI ANDA === */
+.py-12 { padding-top: 2rem; padding-bottom: 2rem; }
+.sm\:px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.lg\:px-8 { padding-left: 2rem; padding-right: 2rem; }
+.bg-white.dark\:bg-gray-800 { background-color: #1f1f1f !important; }
+.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+.sm\:rounded-lg { border-radius: 0.5rem; }
+.p-6 { padding: 1.5rem; }
+.text-gray-900.dark\:text-gray-100 { color: #e5e7eb !important; }
+.mt-6 { margin-top: 1.5rem; }
+.font-semibold { font-weight: 600; }
+.text-lg { font-size: 1.125rem; }
+
+/* Gaya tambahan untuk daftar event */
+.list-group-item {
+    background-color: #2d2d2d;
+    border: 1px solid #3a3a3a;
+    color: #e5e7eb;
+}
+.list-group-item h5 { color: #ffc107; }
