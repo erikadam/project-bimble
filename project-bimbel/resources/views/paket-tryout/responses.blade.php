@@ -63,6 +63,7 @@
                                     <tr class="hover:bg-gray-700">
                                         <td class="px-5 py-4 border-b border-gray-700 text-sm">
                                             <p class="text-gray-200 whitespace-no-wrap">{{ $student->nama_lengkap }}</p>
+                                            <p class="text-sm text-gray-400">{{ $student->kelas }} - {{ $student->asal_sekolah }}</p>
                                             <p class="text-gray-400 text-xs whitespace-no-wrap">{{ $student->kelompok }}</p>
                                         </td>
                                         <td class="px-5 py-4 border-b border-gray-700 text-sm">

@@ -5,7 +5,7 @@
 
         <div class="text-center mb-4">
             <a href="/">
-                <img src="{{ asset('images/logo.svg') }}" alt="logo" style="width: 150px;">
+                <img src="{{ asset('images/logo-baru.png') }}" alt="logo" style="width: 200px;">
             </a>
         </div>
 

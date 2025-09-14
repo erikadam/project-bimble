@@ -53,6 +53,11 @@
                                 <x-dropdown-link :href="route('company-goals.index')">
                                     {{ __('Visi & Misi') }}
                                 </x-dropdown-link>
+
+                                {{-- INI BAGIAN YANG DIPERBAIKI --}}
+                                <x-dropdown-link :href="route('about-us.index')">
+                                    {{ __('About Us') }}
+                                </x-dropdown-link>
                             </x-slot>
                         </x-dropdown>
                     </div>

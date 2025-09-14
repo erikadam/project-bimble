@@ -14,6 +14,7 @@ use App\Exports\LaporanSiswaExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 
+
 class PaketTryoutController extends Controller
 {
     /**
@@ -160,59 +161,75 @@ class PaketTryoutController extends Controller
 
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'nama_paket' => 'required|string|max:255',
-            'tipe_paket' => 'required|in:tryout,ulangan,event',
-            'deskripsi' => 'nullable|string',
-            'jenjang_pendidikan' => 'required|string|in:SD,SMP,SMA',
-            'waktu_mulai' => 'required_if:tipe_paket,event|nullable|date',
-            'min_wajib' => 'required_if:tipe_paket,tryout,ulangan|nullable|integer|min:0',
-            'max_opsional' => 'required_if:tipe_paket,tryout,ulangan|nullable|integer|min:0',
-            'mata_pelajaran' => 'required|array|min:1',
-            'mata_pelajaran.*.id' => 'required|exists:mata_pelajaran,id',
-            'mata_pelajaran.*.durasi' => 'required|integer|min:1',
-            'mata_pelajaran.*.urutan' => 'required|integer',
-            'mata_pelajaran.*.soal' => 'required|array|min:1',
-            'mata_pelajaran.*.soal.*' => 'exists:soal,id',
+{
+    // 1. Gabungkan semua aturan validasi menjadi satu array
+    $rules = [
+        'nama_paket' => 'required|string|max:255',
+        'tipe_paket' => 'required|in:tryout,ulangan,event',
+        'deskripsi' => 'nullable|string',
+        'jenjang_pendidikan' => 'required|string|in:SD,SMP,SMA',
+        'mata_pelajaran' => 'required|array|min:1',
+        'mata_pelajaran.*.id' => 'required|exists:mata_pelajaran,id',
+        'mata_pelajaran.*.durasi' => 'required|integer|min:1',
+        'mata_pelajaran.*.urutan' => 'required|integer',
+        'mata_pelajaran.*.soal' => 'required|array|min:1',
+        'mata_pelajaran.*.soal.*' => 'exists:soal,id',
+    ];
+
+    // 2. Tambahkan aturan kondisional
+    // Jika tipe BUKAN 'ulangan', maka min_wajib & max_opsional boleh diisi
+    if ($request->input('tipe_paket') !== 'ulangan') {
+        $rules['min_wajib'] = 'nullable|integer|min:0';
+        $rules['max_opsional'] = 'nullable|integer|min:0';
+    }
+
+    // Jika tipe adalah 'event', maka waktu_mulai wajib diisi
+    if ($request->input('tipe_paket') === 'event') {
+        $rules['waktu_mulai'] = 'required|date';
+    }
+
+    // 3. Panggil validate HANYA SATU KALI
+    $validatedData = $request->validate($rules);
+
+    $totalDurasi = collect($request->mata_pelajaran)->sum('durasi');
+
+    DB::transaction(function () use ($request, $validatedData, $totalDurasi) {
+        $paketTryout = PaketTryout::create([
+            'guru_id' => auth()->id(),
+            'nama_paket' => $validatedData['nama_paket'],
+            'tipe_paket' => $validatedData['tipe_paket'],
+            'deskripsi' => $validatedData['deskripsi'],
+
+            // Logika penyimpanan yang sudah diperbaiki
+            'min_wajib' => $validatedData['min_wajib'] ?? null,
+            'max_opsional' => $validatedData['max_opsional'] ?? null,
+
+            'kode_soal' => strtoupper(Str::random(6)),
+            'status' => 'published',
+            'durasi_menit' => $totalDurasi,
+            'waktu_mulai' => $validatedData['waktu_mulai'] ?? null,
         ]);
 
-        $totalDurasi = collect($request->mata_pelajaran)->sum('durasi');
+        $soalDipilihSyncData = [];
+        $mapelSyncData = [];
 
-        DB::transaction(function () use ($request, $totalDurasi) {
-            $paketTryout = PaketTryout::create([
-                'guru_id' => auth()->id(),
-                'nama_paket' => $request->nama_paket,
-                'tipe_paket' => $request->tipe_paket,
-                'deskripsi' => $request->deskripsi,
-                'min_wajib' => $request->tipe_paket !== 'event' ? $request->min_wajib : null,
-                'max_opsional' => $request->tipe_paket !== 'event' ? $request->max_opsional : null,
-                'kode_soal' => strtoupper(Str::random(6)),
-                'status' => 'published',
-                'durasi_menit' => $totalDurasi,
-                'waktu_mulai' => $request->tipe_paket == 'event' ? $request->waktu_mulai : null,
-            ]);
+        foreach ($request->mata_pelajaran as $mapelData) {
+            $mapelSyncData[$mapelData['id']] = [
+                'durasi_menit' => $mapelData['durasi'],
+                'urutan' => $mapelData['urutan']
+            ];
 
-            $soalDipilihSyncData = [];
-            $mapelSyncData = [];
-
-            foreach ($request->mata_pelajaran as $mapelData) {
-                $mapelSyncData[$mapelData['id']] = [
-                    'durasi_menit' => $mapelData['durasi'],
-                    'urutan' => $mapelData['urutan']
-                ];
-
-                foreach ($mapelData['soal'] as $soalId) {
-                    $soalDipilihSyncData[$soalId] = ['bobot' => 1]; // Default bobot 1
-                }
+            foreach ($mapelData['soal'] as $soalId) {
+                $soalDipilihSyncData[$soalId] = ['bobot' => 1]; // Default bobot 1
             }
+        }
 
-            $paketTryout->mataPelajaran()->sync($mapelSyncData);
-            $paketTryout->soalPilihan()->sync($soalDipilihSyncData);
-        });
+        $paketTryout->mataPelajaran()->sync($mapelSyncData);
+        $paketTryout->soalPilihan()->sync($soalDipilihSyncData);
+    });
 
-        return redirect()->route('paket-tryout.index', ['jenjang' => $request->jenjang_pendidikan])->with('success', 'Paket Tryout berhasil dibuat.');
-    }
+    return redirect()->route('paket-tryout.index', ['jenjang' => $request->jenjang_pendidikan])->with('success', 'Paket Tryout berhasil dibuat.');
+}
 
 
     public function showResponses(PaketTryout $paketTryout)
@@ -347,60 +364,75 @@ class PaketTryoutController extends Controller
     }
 
     public function update(Request $request, PaketTryout $paketTryout)
-    {
-        $validatedData = $request->validate([
-            'nama_paket' => 'required|string|max:255',
-            'tipe_paket' => 'required|in:tryout,ulangan,event',
-            'deskripsi' => 'nullable|string',
-            'waktu_mulai' => 'required_if:tipe_paket,event|nullable|date',
-            'min_wajib' => 'required_if:tipe_paket,tryout,ulangan|nullable|integer|min:0',
-            'max_opsional' => 'required_if:tipe_paket,tryout,ulangan|nullable|integer|min:0',
-            'mata_pelajaran' => 'required|array|min:1',
-            'mata_pelajaran.*.id' => 'required|exists:mata_pelajaran,id',
-            'mata_pelajaran.*.durasi' => 'required|integer|min:1',
-            'mata_pelajaran.*.urutan' => 'required|integer',
-            'mata_pelajaran.*.soal' => 'required|array|min:1',
-            'mata_pelajaran.*.soal.*' => 'exists:soal,id',
+{
+    // 1. Gabungkan semua aturan validasi menjadi satu array
+    $rules = [
+        'nama_paket' => 'required|string|max:255',
+        'tipe_paket' => 'required|in:tryout,ulangan,event',
+        'deskripsi' => 'nullable|string',
+        'mata_pelajaran' => 'required|array|min:1',
+        'mata_pelajaran.*.id' => 'required|exists:mata_pelajaran,id',
+        'mata_pelajaran.*.durasi' => 'required|integer|min:1',
+        'mata_pelajaran.*.urutan' => 'required|integer',
+        'mata_pelajaran.*.soal' => 'required|array|min:1',
+        'mata_pelajaran.*.soal.*' => 'exists:soal,id',
+    ];
+
+    // 2. Tambahkan aturan kondisional
+    if ($request->input('tipe_paket') !== 'ulangan') {
+        $rules['min_wajib'] = 'nullable|integer|min:0';
+        $rules['max_opsional'] = 'nullable|integer|min:0';
+    }
+
+    if ($request->input('tipe_paket') === 'event') {
+        $rules['waktu_mulai'] = 'required|date';
+    }
+
+    // 3. Panggil validate HANYA SATU KALI
+    $validatedData = $request->validate($rules);
+
+    $totalDurasi = collect($validatedData['mata_pelajaran'])->sum('durasi');
+
+    DB::transaction(function () use ($request, $paketTryout, $validatedData, $totalDurasi) {
+        $paketTryout->update([
+            'nama_paket' => $validatedData['nama_paket'],
+            'tipe_paket' => $validatedData['tipe_paket'],
+            'deskripsi' => $validatedData['deskripsi'],
+
+            // Logika penyimpanan yang sudah diperbaiki
+            'min_wajib' => $validatedData['min_wajib'] ?? null,
+            'max_opsional' => $validatedData['max_opsional'] ?? null,
+
+            'durasi_menit' => $totalDurasi,
+            'waktu_mulai' => $validatedData['waktu_mulai'] ?? null,
         ]);
 
-        $totalDurasi = collect($validatedData['mata_pelajaran'])->sum('durasi');
+        $soalDipilihSyncData = [];
+        $mapelSyncData = [];
 
-        DB::transaction(function () use ($request, $paketTryout, $totalDurasi) {
-            $paketTryout->update([
-                'nama_paket' => $request->nama_paket,
-                'tipe_paket' => $request->tipe_paket,
-                'deskripsi' => $request->deskripsi,
-                'min_wajib' => $request->tipe_paket !== 'event' ? $request->min_wajib : null,
-                'max_opsional' => $request->tipe_paket !== 'event' ? $request->max_opsional : null,
-                'durasi_menit' => $totalDurasi,
-                'waktu_mulai' => $request->tipe_paket == 'event' ? $request->waktu_mulai : null,
-            ]);
+        $existingBobots = $paketTryout->soalPilihan->pluck('pivot.bobot', 'id');
 
-            $soalDipilihSyncData = [];
-            $mapelSyncData = [];
-
-            // Ambil bobot yang sudah ada
-            $existingBobots = $paketTryout->soalPilihan->pluck('pivot.bobot', 'id');
-
-            foreach ($request->mata_pelajaran as $mapelData) {
-                $mapelSyncData[$mapelData['id']] = [
-                    'durasi_menit' => $mapelData['durasi'],
-                    'urutan' => $mapelData['urutan'],
-                ];
-                if (!empty($mapelData['soal'])) {
-                    foreach($mapelData['soal'] as $soalId) {
-                        // Pertahankan bobot yang ada, atau set default 1 untuk soal baru
-                        $soalDipilihSyncData[$soalId] = ['bobot' => $existingBobots[$soalId] ?? 1];
-                    }
+        foreach ($request->mata_pelajaran as $mapelData) {
+            $mapelSyncData[$mapelData['id']] = [
+                'durasi_menit' => $mapelData['durasi'],
+                'urutan' => $mapelData['urutan'],
+            ];
+            if (!empty($mapelData['soal'])) {
+                foreach($mapelData['soal'] as $soalId) {
+                    $soalDipilihSyncData[$soalId] = ['bobot' => $existingBobots[$soalId] ?? 1];
                 }
             }
+        }
 
-            $paketTryout->mataPelajaran()->sync($mapelSyncData);
-            $paketTryout->soalPilihan()->sync($soalDipilihSyncData);
-        });
+        // --- INI ADALAH BARIS YANG DIPERBAIKI ---
+        $paketTryout->mataPelajaran()->sync($mapelSyncData);
+        // -----------------------------------------
 
-        return redirect()->route('paket-tryout.show', $paketTryout)->with('success', 'Paket Tryout berhasil diperbarui.');
-    }
+        $paketTryout->soalPilihan()->sync($soalDipilihSyncData);
+    });
+
+    return redirect()->route('paket-tryout.show', $paketTryout)->with('success', 'Paket Tryout berhasil diperbarui.');
+}
     public function destroy(PaketTryout $paketTryout)
     {
         $jenjang = $paketTryout->mataPelajaran->first()->jenjang_pendidikan ?? null;
@@ -443,10 +475,23 @@ class PaketTryoutController extends Controller
     }
 
     public function exportLaporanSiswa(PaketTryout $paketTryout)
-    {
-        $namaFile = 'laporan-siswa-' . Str::slug($paketTryout->nama_paket) . '.xlsx';
-        return Excel::download(new LaporanSiswaExport($paketTryout), $namaFile);
-    }
+{
+    // 1. Ambil daftar mata pelajaran dari paket ini untuk dijadikan header kolom
+    $mataPelajaran = $paketTryout->mataPelajaran()->orderBy('urutan', 'asc')->get();
+
+    // 2. Ambil siswa yang valid (punya nama) dan muat semua relasi yang dibutuhkan
+    //    (jawaban, soal, dan mapel dari soal) untuk menghindari query berulang.
+    $students = $paketTryout->students()
+                            ->whereNotNull('nama_lengkap')
+                            ->where('nama_lengkap', '!=', '')
+                            ->with('jawabanPeserta.soal.mataPelajaran')
+                            ->get();
+
+    $namaFile = 'laporan-' . Str::slug($paketTryout->nama_paket) . '.xlsx';
+
+    // 3. Kirimkan DUA variabel (siswa dan daftar mapel) ke kelas Export
+    return Excel::download(new LaporanSiswaExport($students, $mataPelajaran), $namaFile);
+}
     public function getBobotSoal(PaketTryout $paketTryout)
     {
         $soal = $paketTryout->soalPilihan()->with('mataPelajaran')->get()

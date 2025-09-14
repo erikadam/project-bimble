@@ -20,45 +20,41 @@
                         @csrf
 
                         <div class="space-y-8">
-                            @forelse ($mapel->soal as $soal)
-                                <div class="p-4 border border-gray-700 bg-gray-700 rounded-lg shadow-sm">
-                                    <div class="font-bold text-lg mb-4 text-white">{!! $loop->iteration . '. ' . $soal->pertanyaan !!}</div>
+                           @foreach ($mapel->soal as $index => $soal)
+                                    <div class="bg-gray-700 p-4 rounded-lg">
+                                        <div class="flex items-start space-x-4">
+                                            <div class="flex-shrink-0 w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center font-bold text-yellow-400">
+                                                {{ $index + 1 }}
+                                            </div>
+                                            <div class="w-full">
+    {{-- Tambahkan gambar soal di sini, sebelum perulangan pilihan jawaban --}}
+    @if ($soal->gambar_path)
+        <img src="{{ Storage::url($soal->gambar_path) }}" alt="Gambar Soal" class="max-w-xs max-h-80 mb-4 rounded-lg shadow-sm object-contain">
+    @endif
 
-                                    @if ($soal->tipe_soal === 'pilihan_ganda')
-                                        <div class="space-y-2">
-                                            @foreach ($soal->pilihanJawaban as $pilihan)
-                                                <label class="flex items-start space-x-2 p-2 border border-gray-600 rounded-md cursor-pointer hover:bg-gray-600">
-                                                    <input type="radio" name="jawaban_soal[{{ $soal->id }}]" value="{{ $pilihan->pilihan_teks }}" class="mt-1 text-yellow-400 focus:ring-yellow-400 bg-gray-800 border-gray-600">
-                                                    <div>
-                                                        @if ($pilihan->gambar_path)
-                                                            <img src="{{ Storage::url($pilihan->gambar_path) }}" alt="Gambar Pilihan" class="max-w-xs max-h-40 mb-2 rounded-lg shadow-sm object-contain">
-                                                        @endif
-                                                        <span class="text-gray-300">{!! $pilihan->pilihan_teks !!}</span>
-                                                    </div>
-                                                </label>
-                                            @endforeach
+    <div class="prose prose-invert max-w-none mb-4 text-gray-300">
+        {!! $soal->pertanyaan !!}
+    </div>
+    <div class="space-y-3">
+        @foreach ($soal->pilihanJawaban as $pilihan)
+            <label class="flex items-center p-3 bg-gray-800 rounded-md hover:bg-gray-600 cursor-pointer">
+                <input type="radio" class="text-yellow-400 bg-gray-900 border-gray-700 focus:ring-yellow-500"
+                        name="jawaban_soal[{{ $soal->id }}]"
+                        value="{{ $pilihan->pilihan_teks }}">
+                <span class="ml-3 text-gray-300">
+                    {{-- Tambahkan gambar pilihan jawaban di sini --}}
+                    @if ($pilihan->gambar_path)
+                        <img src="{{ Storage::url($pilihan->gambar_path) }}" alt="Gambar Pilihan" class="max-w-xs max-h-40 mb-2 rounded-lg shadow-sm object-contain">
+                    @endif
+                    {!! $pilihan->pilihan_teks !!}
+                </span>
+            </label>
+        @endforeach
+    </div>
+</div>
                                         </div>
-                                    @elseif ($soal->tipe_soal === 'pilihan_ganda_majemuk')
-                                        <div class="space-y-2">
-                                            @foreach ($soal->pilihanJawaban as $pilihan)
-                                                <label class="flex items-start space-x-2 p-2 border border-gray-600 rounded-md cursor-pointer hover:bg-gray-600">
-                                                    <input type="checkbox" name="jawaban_soal[{{ $soal->id }}][]" value="{{ $pilihan->pilihan_teks }}" class="mt-1 text-yellow-400 focus:ring-yellow-400 rounded bg-gray-800 border-gray-600">
-                                                    <div>
-                                                        @if ($pilihan->gambar_path)
-                                                            <img src="{{ Storage::url($pilihan->gambar_path) }}" alt="Gambar Pilihan" class="max-w-xs max-h-40 mb-2 rounded-lg shadow-sm object-contain">
-                                                        @endif
-                                                        <span class="text-gray-300">{!! $pilihan->pilihan_teks !!}</span>
-                                                    </div>
-                                                </label>
-                                            @endforeach
-                                        </div>
-                                    @elseif ($soal->tipe_soal === 'isian')
-                                        <x-text-input type="text" name="jawaban_soal[{{ $soal->id }}]" class="w-full mt-2 bg-gray-700 border-gray-600 text-white placeholder-gray-500" placeholder="Jawaban isian" />
-                                    @endif
-                                </div>
-                            @empty
-                                <p class="text-center text-gray-500">Tidak ada soal untuk mata pelajaran ini.</p>
-                            @endforelse
+                                    </div>
+                                @endforeach
                         </div>
 
                         <div class="flex justify-end mt-6">

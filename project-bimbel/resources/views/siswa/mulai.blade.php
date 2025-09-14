@@ -20,7 +20,16 @@
                     <x-text-input id="nama_lengkap" class="block mt-1 w-full bg-gray-700 border-gray-600 text-white placeholder-gray-400" type="text" name="nama_lengkap" :value="old('nama_lengkap')" required autofocus />
                     <x-input-error :messages="$errors->get('nama_lengkap')" class="mt-2" />
                 </div>
-
+                <div class="mb-4">
+                    <x-input-label for="kelas" :value="__('Kelas')" />
+                    <x-text-input id="kelas" class="block mt-1 w-full" type="text" name="kelas" :value="old('kelas')" required placeholder="Contoh: 12 IPA 1" />
+                    <x-input-error :messages="$errors->get('kelas')" class="mt-2" />
+                </div>
+                <div class="mb-4">
+                    <x-input-label for="asal_sekolah" :value="__('Asal Sekolah')" />
+                    <x-text-input id="asal_sekolah" class="block mt-1 w-full" type="text" name="asal_sekolah" :value="old('asal_sekolah')" required placeholder="Contoh: SMAN 1 Jakarta" />
+                    <x-input-error :messages="$errors->get('asal_sekolah')" class="mt-2" />
+                </div>
                 {{-- Input jenjang pendidikan sekarang disembunyikan --}}
                 <input type="hidden" name="jenjang_pendidikan" value="{{ $jenjang }}">
 

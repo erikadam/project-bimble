@@ -1,43 +1,59 @@
 <x-guest-layout>
-    <div class="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4">
-        <div class="w-full max-w-4xl bg-gray-800 p-8 rounded-lg shadow-md">
-            <h1 class="text-2xl font-bold text-center text-white mb-2">Pilih Tryout Event</h1>
-            <p class="text-center text-gray-300 mb-8">Ujian berikut hanya dapat diakses sesuai jadwal yang ditentukan. Jenjang: <span class="font-semibold">{{ $jenjang }}</span>.</p>
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center text-white mb-8">Pilih Event Tryout - Jenjang {{ $jenjang ?? 'Semua' }}</h1>
 
-            <div class="space-y-4">
-                @forelse ($paketTryouts as $paket)
-                    <div x-data="countdownTimer({{ $paket->waktu_mulai_timestamp ?? 'null' }}, {{ $paket->waktu_selesai_timestamp ?? 'null' }}, {{ $paket->server_now_timestamp ?? 'null' }})"
-                         class="block p-6 bg-gray-800 border rounded-lg shadow-sm transition-all duration-300"
-                         :class="{
-                             'border-gray-700 hover:border-yellow-400': status === 'Sedang Berlangsung',
-                             'border-gray-700 opacity-70': status === 'Akan Datang' || status === 'Telah Selesai',
-                             'cursor-pointer': status === 'Sedang Berlangsung',
-                             'cursor-not-allowed': status === 'Akan Datang' || status === 'Telah Selesai'
-                         }">
-
-                        <a href="{{ route('siswa.ujian.mulai', $paket->id) }}"
-                           class="flex justify-between items-center space-x-4 h-full"
-                           :class="{'pointer-events-none': status !== 'Sedang Berlangsung'}">
-                            <div class="flex-1">
-                                <h3 class="text-xl font-semibold text-white">{{ $paket->nama_paket }}</h3>
-                                <p class="text-sm text-gray-400">{{ $paket->deskripsi }}</p>
-                                <p class="text-xs text-gray-400 mt-2">Dibuat oleh: <span class="font-semibold">{{ $paket->guru->name }}</span></p>
-                                <p class="text-sm mt-2 font-semibold"
-                                   :class="{ 'text-green-400': status === 'Sedang Berlangsung', 'text-yellow-400': status === 'Akan Datang', 'text-red-400': status === 'Telah Selesai' }"
-                                   x-text="countdownText"></p>
-                            </div>
-                            <div class="flex-shrink-0 text-right">
-                                <span class="inline-block px-3 py-1 text-sm font-semibold rounded-full" :class="{'bg-yellow-400 text-yellow-900': status === 'Sedang Berlangsung', 'bg-gray-700 text-gray-400': status !== 'Sedang Berlangsung'}" x-text="status"></span>
-                                <p class="text-xs text-gray-400 mt-1">Durasi: {{ $paket->durasi_menit }} menit</p>
-                            </div>
-                        </a>
-                    </div>
-                @empty
-                    <div class="bg-gray-700 p-6 rounded-lg text-center text-gray-400">
-                        Belum ada paket event yang tersedia untuk jenjang ini.
-                    </div>
-                @endforelse
+        @if(session('error'))
+            <div class="bg-red-500 text-white p-4 rounded-lg mb-6">
+                {{ session('error') }}
             </div>
+        @endif
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @forelse ($paketTryouts as $paket)
+                <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden flex flex-col">
+                    <div class="p-6 flex-grow">
+                        <h2 class="text-xl font-bold text-white mb-2">{{ $paket->nama_paket }}</h2>
+                        <p class="text-gray-400 text-sm mb-4">Oleh: {{ $paket->guru->name }}</p>
+                        <div class="prose prose-sm prose-invert text-gray-300 max-w-none">
+                            {!! $paket->deskripsi !!}
+                        </div>
+                    </div>
+                    <div class="p-6 bg-gray-700">
+                        <div class="text-center mb-4">
+                            @if ($paket->event_status == 'Akan Datang')
+                                <p class="text-sm text-gray-300">Akan dimulai dalam:</p>
+                                {{-- Atribut 'data-countdown' untuk dibaca oleh JavaScript --}}
+                                <div class="text-2xl font-bold text-yellow-400"
+                                     data-countdown="{{ \Carbon\Carbon::parse($paket->waktu_mulai)->format('Y/m/d H:i:s') }}">
+                                     </div>
+                            @elseif ($paket->event_status == 'Sedang Berlangsung')
+                                <p class="text-2xl font-bold text-green-400">Sedang Berlangsung!</p>
+                            @else
+                                <p class="text-2xl font-bold text-red-400">Telah Selesai</p>
+                            @endif
+                        </div>
+
+                        @if ($paket->event_status == 'Akan Datang')
+                            <button disabled class="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded cursor-not-allowed">
+                                Belum Dimulai
+                            </button>
+                        @elseif ($paket->event_status == 'Sedang Berlangsung')
+                            <a href="{{ route('siswa.ujian.mulai', $paket->id) }}" class="block w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                                Mulai Kerjakan
+                            </a>
+                        @else
+                            <button disabled class="w-full bg-red-500 text-white font-bold py-2 px-4 rounded cursor-not-allowed">
+                                Event Selesai
+                            </button>
+                        @endif
+                    </div>
+                </div>
+            @empty
+                <div class="md:col-span-2 lg:col-span-3 text-center py-16">
+                    <p class="text-gray-400 text-lg">Tidak ada event tryout yang tersedia untuk jenjang ini.</p>
+                </div>
+            @endforelse
+                        </div>
              <div class="mt-8 text-center">
                 <a href="{{ route('siswa.pilih_jenjang') }}" class="inline-flex items-center px-4 py-2 bg-gray-800 border border-gray-700 rounded-md font-semibold text-xs text-yellow-400 uppercase tracking-widest shadow-sm hover:bg-gray-700">
                     &larr; Kembali
@@ -45,50 +61,25 @@
             </div>
         </div>
     </div>
-</x-guest-layout>
 
-<script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('countdownTimer', (startTime, endTime, serverNow) => ({
-            status: 'Loading...',
-            countdownText: '',
-            serverNow: serverNow,
-            interval: null,
-            init() {
-                this.updateStatus();
-                this.interval = setInterval(() => this.updateStatus(), 1000);
-            },
-            updateStatus() {
-                const now = Math.floor(Date.now() / 1000);
-                const timeDiff = now - this.serverNow;
-                const currentTime = Date.now() / 1000 - timeDiff;
-                const start = startTime;
-                const end = endTime;
-                if (currentTime < start) {
-                    this.status = 'Akan Datang';
-                    this.countdownText = `Dimulai dalam: ${this.formatDuration(start - currentTime)}`;
-                } else if (currentTime >= start && currentTime < end) {
-                    this.status = 'Sedang Berlangsung';
-                    this.countdownText = `Berakhir dalam: ${this.formatDuration(end - currentTime)}`;
-                } else {
-                    this.status = 'Telah Selesai';
-                    this.countdownText = 'Ujian telah berakhir.';
-                    clearInterval(this.interval);
-                }
-            },
-            formatDuration(seconds) {
-                if (seconds < 0) seconds = 0;
-                const d = Math.floor(seconds / (3600 * 24));
-                const h = Math.floor(seconds % (3600 * 24) / 3600);
-                const m = Math.floor(seconds % 3600 / 60);
-                const s = Math.floor(seconds % 60);
-                let parts = [];
-                if (d > 0) parts.push(`${d}h`);
-                if (h > 0) parts.push(`${h}j`);
-                if (m > 0) parts.push(`${m}m`);
-                if (s >= 0) parts.push(`${s}d`);
-                return parts.slice(0, 3).join(' ');
-            }
-        }));
-    });
-</script>
+    @push('scripts')
+    <script type="text/javascript">
+        // Pastikan kode berjalan setelah halaman dan semua skrip siap
+        $(function() {
+            // Cari semua elemen yang punya atribut 'data-countdown'
+            $('[data-countdown]').each(function() {
+                var $this = $(this), finalDate = $(this).data('countdown');
+
+                // Jalankan plugin countdown pada elemen ini
+                $this.countdown(finalDate, function(event) {
+                    // Atur format tampilan: Hari Jam:Menit:Detik
+                    $this.html(event.strftime('%D hari %H:%M:%S'));
+                }).on('finish.countdown', function() {
+                    // Saat countdown selesai, refresh halaman agar status tombol berubah
+                    location.reload();
+                });
+            });
+        });
+    </script>
+    @endpush
+</x-guest-layout>

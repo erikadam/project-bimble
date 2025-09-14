@@ -2,6 +2,61 @@
 
 @extends('layouts.landing')
 
+@section('custom-styles')
+<style>
+
+
+    /* [STYLE DESKTOP] Mengatur tinggi dan tampilan slide */
+    .header .swiper-slide {
+        height: 500px;
+        background-color: #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .header .slider-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+    }
+
+    /* [STYLE DESKTOP] Menyesuaikan warna tombol navigasi Swiper */
+    .header .swiper-button-next,
+    .header .swiper-button-prev {
+        color: #ffbf00;
+    }
+
+    .header .text-container {
+        padding-bottom: 5rem;
+    }
+
+    /* [PENYESUAIAN MOBILE] - Aturan ini hanya berlaku untuk layar kecil (di bawah 767px) */
+    @media (max-width: 767px) {
+        .header {
+            padding-top: 4rem;
+            padding-bottom: 15rem; /* Mengurangi padding vertikal di header */
+        }
+
+        .header .text-container {
+            padding-bottom: 3rem; /* Mengurangi jarak antara teks atas dan slider */
+        }
+
+        .header .h2-heading {
+            font-size: 1.75rem; /* Sedikit perkecil judul "Our Documentation" */
+            margin-bottom: 2rem; /* Mengurangi jarak judul ke slider */
+        }
+
+        .header .swiper-slide {
+            height: 220px; /* Tinggi slider dibuat lebih pendek agar proporsional di mobile */
+        }
+    }
+</style>
+@endsection
+
+
 @section('content')
 
 <header id="header" class="header">
@@ -21,7 +76,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-12">
-                    <h2 class="h2-heading">Our Documentation</h2>
+                    <h2 class="h2-heading">Mading</h2>
                 </div>
             </div>
         </div>
@@ -158,52 +213,28 @@
         </div>
     </div>
 </div>
-<div id="contact" class="form-3">
+{{-- Bagian "About Us" Baru --}}
+@if($aboutUs)
+<div id="about" class="form-3">
     <div class="container">
         <div class="row">
             <div class="col-lg-6">
+                {{-- Kolom Teks (Sebelah Kiri) --}}
                 <div class="text-container">
-                    <h2>Detail Kontak</h2>
-                    <p>Untuk pertanyaan, jangan ragu untuk menghubungi kami menggunakan detail kontak di bawah ini.</p>
-                    <h3>Lokasi Kantor</h3>
-                    <ul class="list-unstyled li-space-lg">
-                        <li class="media">
-                            <i class="fas fa-map-marker-alt"></i>
-                            <div class="media-body">22nd Innovative Street, San Francisco, CA 94043, US</div>
-                        </li>
-                        <li class="media">
-                            <i class="fas fa-mobile-alt"></i>
-                            <div class="media-body">+44 68 554 332</div>
-                        </li>
-                        <li class="media">
-                            <i class="fas fa-envelope"></i>
-                            <div class="media-body">contact@corso.com</div>
-                        </li>
-                    </ul>
+                    <h2>{{ $aboutUs->title }}</h2>
+                    <p>{{ $aboutUs->description }}</p>
                 </div>
             </div>
             <div class="col-lg-6">
-                <form id="contactForm" data-toggle="validator" data-focus="false">
-                    <div class="form-group">
-                        <input type="text" class="form-control-input" id="cname" required>
-                        <label class="label-control" for="cname">Nama</label>
-                    </div>
-                    <div class="form-group">
-                        <input type="email" class="form-control-input" id="cemail" required>
-                        <label class="label-control" for="cemail">Email</label>
-                    </div>
-                    <div class="form-group">
-                        <textarea class="form-control-textarea" id="cmessage" required></textarea>
-                        <label class="label-control" for="cmessage">Pesan Anda</label>
-                    </div>
-                    <div class="form-group">
-                        <button type="submit" class="form-control-submit-button">KIRIM PESAN</button>
-                    </div>
-                </form>
+                {{-- Kolom Gambar (Sebelah Kanan) --}}
+                <div class="image-container">
+                    <img class="img-fluid" src="{{ asset('storage/' . $aboutUs->image_path) }}" alt="about us" style="border-radius: 0.25rem;">
+                </div>
             </div>
         </div>
     </div>
 </div>
+@endif
 <div class="cards-1">
     <div class="container">
         <div class="row">

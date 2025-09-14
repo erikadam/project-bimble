@@ -6,6 +6,8 @@
 
             <div class="mb-8 p-4 bg-gray-700 rounded-lg">
                 <p class="text-gray-300">Nama: <span class="font-medium">{{ $namaLengkap }}</span></p>
+                <p class="text-gray-300">Kelas: <span class="font-medium">{{ $kelas }}</span></p>
+                <p class="text-gray-300">Asal Sekolah: <span class="font-medium">{{ $asalSekolah }}</span></p>
                 <p class="text-gray-300">Jenjang: <span class="font-medium">{{ $jenjangPendidikan }}</span></p>
                 <p class="text-gray-300">Kelompok: <span class="font-medium">{{ $kelompok }}</span></p>
                 <p class="text-gray-300">Paket Ujian: <span class="font-medium">{{ $paketTryout->nama_paket }}</span></p>

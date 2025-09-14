@@ -27,5 +27,8 @@
     <main class="container mx-auto mt-10">
         {{ $slot }}
     </main>
+    <script src="{{ asset('js/jquery.min.js') }}"></script>
+        <script src="{{ asset('js/jquery.countdown.min.js') }}"></script>
+        @stack('scripts')
 </body>
 </html>

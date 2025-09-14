@@ -4,7 +4,16 @@
             Edit Paket: {{ $paketTryout->nama_paket }}
         </h2>
     </x-slot>
-
+    <style>
+        #waktu_mulai {
+            background-color: #ffbd50 !important;
+            color: #333 !important;
+            border-color: #f0a731 !important;
+        }
+        #waktu_mulai::-webkit-calendar-picker-indicator {
+            filter: grayscale(1) brightness(0.5);
+        }
+    </style>
     <div class="py-12" x-data="formTryout()">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
@@ -23,7 +32,6 @@
                                 <x-input-label for="tipe_paket" :value="__('Tipe')" class="text-gray-300"/>
                                 <select id="tipe_paket" name="tipe_paket" x-model="tipePaket" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 focus:border-yellow-500 focus:ring-yellow-500 rounded-md shadow-sm">
                                     <option value="tryout">Tryout Fleksibel</option>
-                                    <option value="ulangan">Ulangan</option>
                                     <option value="event">Tryout Event (Terjadwal)</option>
                                 </select>
                             </div>
@@ -36,7 +44,7 @@
                                     <p class="text-sm text-red-500 mt-2">{{ $message }}</p>
                                 @enderror
                             </div>
-                            <div x-show="tipePaket !== 'event'" x-transition class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div x-show="tipePaket !== 'ulangan'" x-transition class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <x-input-label for="min_wajib" :value="__('Minimal Mata Pelajaran Wajib')" class="text-gray-300"/>
                                     <x-text-input id="min_wajib" name="min_wajib" type="number" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200" placeholder="Contoh: 3" :value="old('min_wajib', $paketTryout->min_wajib)" />
@@ -172,5 +180,17 @@
                 }
             }
         }
+               document.addEventListener('DOMContentLoaded', function() {
+            const dateTimeInput = document.getElementById('waktu_mulai');
+            if (dateTimeInput) {
+                dateTimeInput.addEventListener('click', function() {
+                    try {
+                        this.showPicker();
+                    } catch (error) {
+                        console.error("Fungsi showPicker() tidak didukung oleh browser ini.", error);
+                    }
+                });
+            }
+        });
     </script>
 </x-app-layout>

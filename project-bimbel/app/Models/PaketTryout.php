@@ -33,7 +33,10 @@ class PaketTryout extends Model
     {
         return $this->belongsToMany(Soal::class, 'paket_tryout_soal')->withPivot('bobot');
     }
-
+        public function students()
+    {
+        return $this->hasMany(Student::class);
+    }
     public function guru()
     {
         return $this->belongsTo(User::class, 'guru_id');

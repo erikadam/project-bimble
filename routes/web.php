@@ -14,8 +14,9 @@ use App\Http\Controllers\WebsiteSettingController;
 use App\Http\Controllers\TestimonialController;
 use App\Http\Controllers\CompanyGoalController;
 use App\Http\Controllers\UlanganController;
-
+use App\Http\Controllers\Controller;
 // Halaman utama publik
+Route::get('/check-time', [Controller::class, 'checkServerTime']);
 Route::get('/', [SiswaController::class, 'showAksesUlangan'])->name('welcome');
 Route::post('/ulangan/start', [SiswaController::class, 'startUlangan'])->name('ulangan.start');
 Route::prefix('ulangan-siswa')->name('siswa.ulangan.')->group(function () {
@@ -118,6 +119,7 @@ Route::prefix('ujian-siswa')->name('siswa.')->group(function () {
         Route::post('/mulai-pengerjaan', [SiswaController::class, 'mulaiPengerjaan'])->name('mulai_pengerjaan');
         Route::get('/soal/{mapelId}', [SiswaController::class, 'showSoal'])->name('show_soal');
         Route::post('/jawab-mapel/{mapelId}', [SiswaController::class, 'simpanJawaban'])->name('simpan_jawaban');
+        Route::post('/autosave/{mapelId}', [SiswaController::class, 'autoSaveJawaban'])->name('autosave');
         Route::get('/hasil', [SiswaController::class, 'hasil'])->name('hasil');
         Route::get('/unduh-hasil', [SiswaController::class, 'unduhHasil'])->name('unduh_hasil');
         Route::get('/review', [SiswaController::class, 'review'])->name('review');

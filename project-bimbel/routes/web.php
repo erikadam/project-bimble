@@ -51,6 +51,8 @@ Route::get('/dashboard', function () {
 
 // Grup route yang hanya bisa diakses setelah login
 Route::middleware('auth')->group(function () {
+
+    Route::resource('about-us', \App\Http\Controllers\AboutUsController::class);
     Route::post('soal/upload-image', [App\Http\Controllers\SoalController::class, 'uploadImage'])->name('soal.uploadImage');
     Route::resource('company-goals', CompanyGoalController::class);
     Route::resource('testimonials', TestimonialController::class);

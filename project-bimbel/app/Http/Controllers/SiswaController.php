@@ -19,6 +19,7 @@ use Carbon\Carbon;
 use App\Models\Ulangan;
 use App\Models\UlanganSession; // Tambahkan ini
 use App\Models\JawabanUlangan;
+use App\Models\AboutUs;
 
 
 class SiswaController extends Controller
@@ -36,8 +37,9 @@ class SiswaController extends Controller
         $companyGoals = CompanyGoal::all()->groupBy('type');
         $testimonials = Testimonial::all();
         $sliders = SliderImage::all();
+        $aboutUs = AboutUs::first();
 
-        return view('welcome', compact('upcomingEvents', 'companyGoals', 'testimonials', 'sliders'));
+        return view('welcome', compact('upcomingEvents', 'companyGoals', 'testimonials', 'sliders', 'aboutUs'));
     }
 
 
@@ -136,6 +138,8 @@ class SiswaController extends Controller
         } else {
             $validated = $request->validate([
                 'nama_lengkap' => 'required|string|max:255',
+                'kelas' => 'required|string|max:255',
+                'asal_sekolah' => 'required|string|max:255',
                 'jenjang_pendidikan' => 'required|string|in:SD,SMP,SMA',
                 'kelompok' => 'required|string',
             ]);
@@ -386,7 +390,7 @@ class SiswaController extends Controller
         return redirect()->route('siswa.ujian.hasil', $paketTryout->id);
     }
 
-    public function hasil(PaketTryout $paketTryout)
+   public function hasil(PaketTryout $paketTryout)
     {
         $ujianSiswa = Session::get('ujian_siswa');
         if (!$ujianSiswa || $ujianSiswa['paket_id'] != $paketTryout->id) {
@@ -432,9 +436,12 @@ class SiswaController extends Controller
         $namaLengkap = $student->nama_lengkap;
         $jenjangPendidikan = $student->jenjang_pendidikan;
         $kelompok = $student->kelompok;
+        $kelas = $student->kelas;
+        $asalSekolah = $student->asal_sekolah;
         Session::forget('ujian_siswa');
-        return view('siswa.hasil', compact('paketTryout', 'hasilPerMapel', 'totalWaktuPengerjaan', 'namaLengkap', 'jenjangPendidikan', 'kelompok'));
+        return view('siswa.hasil', compact('paketTryout', 'hasilPerMapel', 'totalWaktuPengerjaan', 'namaLengkap', 'jenjangPendidikan', 'kelompok','kelas','asalSekolah'));
     }
+
 
     public function unduhHasil(PaketTryout $paketTryout)
     {

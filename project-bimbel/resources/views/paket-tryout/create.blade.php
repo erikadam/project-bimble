@@ -4,7 +4,17 @@
             {{ __('Buat Paket Tryout Baru') }}
         </h2>
     </x-slot>
-
+    <style>
+        #waktu_mulai {
+            background-color: #ffbd50 !important; /* Warna latar kuning */
+            color: #333 !important; /* Warna teks gelap agar terbaca */
+            border-color: #f0a731 !important; /* Warna border lebih gelap */
+            cursor: pointer; /* Mengubah kursor menjadi pointer */
+        }
+        #waktu_mulai::-webkit-calendar-picker-indicator {
+            filter: grayscale(1) brightness(0.5);
+        }
+    </style>
     <div class="py-12" x-data="formTryout()">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
@@ -29,13 +39,12 @@
                         <div class="space-y-6">
                             <div>
                                 <x-input-label for="nama_paket" :value="__('Langkah 2: Isi Detail Paket')" class="text-gray-300" />
-                                <x-text-input id="nama_paket" name="nama_paket" type="text" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200" placeholder="Nama Paket / Ulangan" :value="old('nama_paket')" required autofocus />
+                                <x-text-input id="nama_paket" name="nama_paket" type="text" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200" placeholder="Nama Paket" :value="old('nama_paket')" required autofocus />
                             </div>
                             <div>
                                 <x-input-label for="tipe_paket" :value="__('Tipe')" class="text-gray-300"/>
                                 <select id="tipe_paket" name="tipe_paket" x-model="tipePaket" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 focus:border-yellow-500 focus:ring-yellow-500 rounded-md shadow-sm">
                                     <option value="tryout">Tryout Fleksibel</option>
-                                    <option value="ulangan">Ulangan</option>
                                     <option value="event">Tryout Event (Terjadwal)</option>
                                 </select>
                             </div>
@@ -44,7 +53,7 @@
                                 <x-text-input id="waktu_mulai" name="waktu_mulai" type="datetime-local" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200" :value="old('waktu_mulai')" />
                                 <p class="text-xs text-gray-400 mt-1">Siswa hanya bisa memulai ujian setelah waktu ini.</p>
                             </div>
-                             <div x-show="tipePaket !== 'event'" x-transition class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div x-show="tipePaket !== 'ulangan'" x-transition class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <x-input-label for="min_wajib" :value="__('Minimal Mata Pelajaran Wajib')" class="text-gray-300"/>
                                     <x-text-input id="min_wajib" name="min_wajib" type="number" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200" placeholder="Contoh: 3" :value="old('min_wajib')" />
@@ -216,5 +225,17 @@
                 }
             }
         }
+               document.addEventListener('DOMContentLoaded', function() {
+            const dateTimeInput = document.getElementById('waktu_mulai');
+            if (dateTimeInput) {
+                dateTimeInput.addEventListener('click', function() {
+                    try {
+                        this.showPicker();
+                    } catch (error) {
+                        console.error("Fungsi showPicker() tidak didukung oleh browser ini.", error);
+                    }
+                });
+            }
+        });
     </script>
 </x-app-layout>

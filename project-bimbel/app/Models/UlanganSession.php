@@ -14,6 +14,7 @@ class UlanganSession extends Model
     protected $fillable = [
         'ulangan_id',
         'nama_siswa',
+        'nama_sekolah',
         'kelas',
         'asal_sekolah',
         'jenjang',
