@@ -476,21 +476,12 @@ class PaketTryoutController extends Controller
 
     public function exportLaporanSiswa(PaketTryout $paketTryout)
 {
-    // 1. Ambil daftar mata pelajaran dari paket ini untuk dijadikan header kolom
-    $mataPelajaran = $paketTryout->mataPelajaran()->orderBy('urutan', 'asc')->get();
 
-    // 2. Ambil siswa yang valid (punya nama) dan muat semua relasi yang dibutuhkan
-    //    (jawaban, soal, dan mapel dari soal) untuk menghindari query berulang.
-    $students = $paketTryout->students()
-                            ->whereNotNull('nama_lengkap')
-                            ->where('nama_lengkap', '!=', '')
-                            ->with('jawabanPeserta.soal.mataPelajaran')
-                            ->get();
 
-    $namaFile = 'laporan-' . Str::slug($paketTryout->nama_paket) . '.xlsx';
+    $fileName = 'laporan-jawaban-siswa-' . Str::slug($paketTryout->nama_paket) . '.xlsx';
 
-    // 3. Kirimkan DUA variabel (siswa dan daftar mapel) ke kelas Export
-    return Excel::download(new LaporanSiswaExport($students, $mataPelajaran), $namaFile);
+
+     return Excel::download(new LaporanSiswaExport($paketTryout->id), $fileName);
 }
     public function getBobotSoal(PaketTryout $paketTryout)
     {
