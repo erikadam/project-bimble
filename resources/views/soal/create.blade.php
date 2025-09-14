@@ -1,110 +1,86 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-gray-200 leading-tight">
             Tambah Soal Baru untuk: {{ $mataPelajaran->nama_mapel }}
         </h2>
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 md:p-8 text-gray-900">
-                    <form method="POST" action="{{ route('mata-pelajaran.soal.store', ['mata_pelajaran' => $mataPelajaran->id]) }}" enctype="multipart/form-data">
+            <div class="bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 md:p-8 text-gray-100">
+                    <form method="POST" action="{{ route('mata-pelajaran.soal.store', ['mata_pelajaran' => $mataPelajaran->id]) }}" enctype="multipart/form-data" id="soal-form">
                         @csrf
 
                         {{-- Pertanyaan --}}
                         <div>
-                            <x-input-label for="pertanyaan" :value="__('Teks Pertanyaan')" />
-                            <textarea id="pertanyaan" name="pertanyaan" rows="10">{{ old('pertanyaan') }}</textarea>
+                            <x-input-label for="pertanyaan" :value="__('Teks Pertanyaan')" class="text-gray-300" />
+                            {{-- Textarea ini akan diinisialisasi oleh TinyMCE --}}
+                            <textarea id="pertanyaan" name="pertanyaan" class="hidden">{{ old('pertanyaan') }}</textarea>
                             <x-input-error :messages="$errors->get('pertanyaan')" class="mt-2" />
                         </div>
 
                         {{-- Gambar Soal (Opsional) --}}
-                        <div class="mt-4">
-                            <x-input-label for="gambar_soal" :value="__('Gambar Soal (Opsional)')" />
-                            <input id="gambar_soal" name="gambar_soal" type="file" class="block mt-1 w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
+                        <div class="mt-6">
+                            <x-input-label for="gambar_soal" :value="__('Gambar Soal (Opsional)')" class="text-gray-300" />
+                            <input id="gambar_soal" name="gambar_soal" type="file" class="block mt-1 w-full text-sm text-gray-300 border border-gray-600 rounded-md cursor-pointer bg-gray-700 focus:outline-none file:bg-gray-600 file:text-gray-200 file:border-0 file:py-2 file:px-4">
                             <x-input-error :messages="$errors->get('gambar_soal')" class="mt-2" />
-                            <div id="gambar_soal_preview_container" class="hidden mt-2">
-                                <p class="text-sm text-gray-600 mb-2">Pratinjau:</p>
-                                <img id="gambar_soal_preview" src="#" alt="Pratinjau Gambar Soal" class="max-w-xs rounded-lg shadow-sm">
+                            <div id="gambar-soal-preview-container" class="hidden mt-2">
+                                <p class="text-sm text-gray-400 mb-2">Pratinjau:</p>
+                                <img src="#" alt="Pratinjau Gambar Soal" id="gambar-soal-preview" class="max-w-xs rounded-lg shadow-sm">
                             </div>
                         </div>
 
-                        {{-- Tipe Soal --}}
-                        <div class="mt-4">
-                            <x-input-label for="tipe_soal" :value="__('Tipe Soal')" />
-                            <select name="tipe_soal" id="tipe_soal" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                <option value="pilihan_ganda" @selected(old('tipe_soal', 'pilihan_ganda') == 'pilihan_ganda')>Pilihan Ganda (Satu Jawaban)</option>
-                                <option value="pilihan_ganda_majemuk" @selected(old('tipe_soal') == 'pilihan_ganda_majemuk')>Pilihan Ganda (Banyak Jawaban)</option>
-                                <option value="isian" @selected(old('tipe_soal') == 'isian')>Isian Singkat</option>
-                            </select>
-                        </div>
-
-                        {{-- Status Soal --}}
-                        <div class="mt-4">
-                            <x-input-label for="status" value="Status Soal" />
-                            <select name="status" id="status" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                <option value="aktif" @selected(old('status', 'aktif') == 'aktif')>Aktif</option>
-                                <option value="nonaktif" @selected(old('status') == 'nonaktif')>Nonaktif</option>
-                            </select>
-                            <x-input-error :messages="$errors->get('status')" class="mt-2" />
-                        </div>
-
-                        <hr class="my-6">
-
-                        {{-- OPSI JAWABAN (DINAMIS) --}}
-                        <div id="opsi-jawaban-container">
-                            <div id="pilihan-ganda-section">
-                                <h3 class="text-lg font-medium mb-2">Opsi Pilihan Ganda</h3>
-                                <p class="text-sm text-gray-600 mb-4">Tandai pilihan sebagai jawaban yang benar. Pilihan dapat berupa teks atau gambar.</p>
-                                <div id="pilihan-wrapper" class="space-y-3">
-                                    {{-- Opsi 1 --}}
-                                    <div class="flex items-start space-x-3">
-                                        <input type="radio" name="jawaban_benar" value="0" @if(old('jawaban_benar') == 0 || (is_array(old('jawaban_benar')) && in_array(0, old('jawaban_benar')))) checked @endif class="jawaban-benar-input text-indigo-600 focus:ring-indigo-500 mt-2">
-                                        <div class="w-full">
-                                            <textarea name="pilihan[]" class="editor-pilihan w-full mb-2" rows="3" placeholder="Opsi A">{{ old('pilihan.0') }}</textarea>
-                                            <input type="file" name="gambar_pilihan[0]" class="gambar-pilihan-input w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
-                                            <div class="gambar-pilihan-preview-container hidden mt-2">
-                                                <p class="text-sm text-gray-600 mb-2">Pratinjau:</p>
-                                                <img src="#" alt="Pratinjau Gambar Opsi" class="gambar-pilihan-preview max-w-xs rounded-lg shadow-sm">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {{-- Opsi 2 --}}
-                                    <div class="flex items-start space-x-3">
-                                        <input type="radio" name="jawaban_benar" value="1" @if(old('jawaban_benar') == 1 || (is_array(old('jawaban_benar')) && in_array(1, old('jawaban_benar')))) checked @endif class="jawaban-benar-input text-indigo-600 focus:ring-indigo-500 mt-2">
-                                        <div class="w-full">
-                                            <textarea name="pilihan[]" class="editor-pilihan w-full mb-2" rows="3" placeholder="Opsi B">{{ old('pilihan.1') }}</textarea>
-                                            <input type="file" name="gambar_pilihan[1]" class="gambar-pilihan-input w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
-                                            <div class="gambar-pilihan-preview-container hidden mt-2">
-                                                <p class="text-sm text-gray-600 mb-2">Pratinjau:</p>
-                                                <img src="#" alt="Pratinjau Gambar Opsi" class="gambar-pilihan-preview max-w-xs rounded-lg shadow-sm">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button type="button" id="tambah-pilihan" class="mt-4 text-sm text-blue-600 hover:text-blue-800">+ Tambah Opsi</button>
-
-                                @if ($errors->has('pilihan.*'))
-                                    @foreach ($errors->get('pilihan.*') as $messages)
-                                        @foreach ($messages as $message)
-                                            <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
-                                        @endforeach
-                                    @endforeach
-                                @endif
-                                <x-input-error :messages="$errors->get('jawaban_benar')" class="mt-2" />
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                            {{-- Tipe Soal --}}
+                            <div>
+                                <x-input-label for="tipe_soal" :value="__('Tipe Soal')" class="text-gray-300" />
+                                <select id="tipe_soal" name="tipe_soal" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 focus:border-yellow-500 focus:ring-yellow-500 rounded-md shadow-sm">
+                                    <option value="pilihan_ganda" @selected(old('tipe_soal') == 'pilihan_ganda')>Pilihan Ganda</option>
+                                    <option value="pilihan_ganda_majemuk" @selected(old('tipe_soal') == 'pilihan_ganda_majemuk')>Pilihan Ganda Majemuk</option>
+                                    <option value="isian" @selected(old('tipe_soal') == 'isian')>Isian Singkat</option>
+                                </select>
+                                <x-input-error :messages="$errors->get('tipe_soal')" class="mt-2" />
                             </div>
 
-                            <div id="isian-section" style="display: none;">
-                                <h3 class="text-lg font-medium mb-2">Jawaban Isian Singkat</h3>
-                                <p class="text-sm text-gray-600 mb-4">Masukkan jawaban yang dianggap benar.</p>
-                                <x-text-input type="text" name="jawaban_isian" class="w-full" :value="old('jawaban_isian')" />
+                            {{-- Status Soal --}}
+                            <div>
+                                <x-input-label for="status" :value="__('Status Soal')" class="text-gray-300" />
+                                <select id="status" name="status" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 focus:border-yellow-500 focus:ring-yellow-500 rounded-md shadow-sm">
+                                    <option value="aktif" @selected(old('status', 'aktif') == 'aktif')>Aktif</option>
+                                    <option value="nonaktif" @selected(old('status') == 'nonaktif')>Nonaktif</option>
+                                </select>
+                                <x-input-error :messages="$errors->get('status')" class="mt-2" />
+                            </div>
+                        </div>
+
+                        {{-- Bagian Pilihan Jawaban (untuk Pilihan Ganda) --}}
+                        <div id="pilihan-jawaban-section" class="mt-6 border-t border-gray-700 pt-6">
+                            <h3 class="text-lg font-medium text-gray-200 mb-2">Pilihan Jawaban</h3>
+                            <x-input-error :messages="$errors->get('pilihan')" class="mb-2" />
+                            <x-input-error :messages="$errors->get('jawaban_benar')" class="mb-2" />
+                            <div id="pilihan-wrapper" class="space-y-4">
+                                {{-- Pilihan akan ditambahkan oleh JavaScript --}}
+                            </div>
+                            <button type="button" id="tambah-pilihan" class="mt-4 inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition ease-in-out duration-150">Tambah Opsi Jawaban</button>
+                        </div>
+
+                        {{-- Bagian Jawaban Isian (untuk Isian Singkat) --}}
+                        <div id="jawaban-isian-section" class="mt-6 border-t border-gray-700 pt-6" style="display: none;">
+                             <h3 class="text-lg font-medium text-gray-200 mb-2">Kunci Jawaban</h3>
+                            <div>
+                                <x-input-label for="jawaban_isian" :value="__('Jawaban Teks Singkat')" class="text-gray-300" />
+                                <x-text-input id="jawaban_isian" class="block mt-1 w-full" type="text" name="jawaban_isian" :value="old('jawaban_isian')" />
                                 <x-input-error :messages="$errors->get('jawaban_isian')" class="mt-2" />
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-end mt-6">
-                            <x-primary-button>
+                        {{-- Tombol Submit --}}
+                        <div class="flex items-center justify-end mt-8">
+                             <a href="{{ route('mata-pelajaran.soal.index', $mataPelajaran->id) }}" class="text-sm text-gray-400 hover:text-gray-200 underline">
+                                Batal
+                            </a>
+                            <x-primary-button class="ms-4">
                                 {{ __('Simpan Soal') }}
                             </x-primary-button>
                         </div>
@@ -114,92 +90,90 @@
         </div>
     </div>
 
+    @push('scripts')
+        <script src="https://cdn.tiny.cloud/1/{{ config('services.tinymce.key') }}/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    @endpush
+
     <script>
-        const tinymceConfig = {
-            selector: 'textarea#pertanyaan, textarea.editor-pilihan',
-            plugins: 'autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount mathlive',
-            toolbar: 'undo redo | blocks | bold italic underline strikethrough | superscript subscript | alignleft aligncenter alignright | bullist numlist | link image | mathlive | charmap | code | removeformat',
-            height: 300,
-            entity_encoding: 'raw',
-            menubar: false,
-            external_plugins: {
-                'mathlive': 'https://unpkg.com/tinymce-mathlive@latest/dist/plugin.min.js'
-            },
-            custom_elements: 'math-field',
-        };
+        document.addEventListener('DOMContentLoaded', function() {
+            const tinymceConfig = {
+                api_key: '{{ config('services.tinymce.key') }}',
+                plugins: 'lists link image table code help wordcount mathtype',
+                toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | indent outdent | bullist numlist | code | table | mathtype',
+                external_plugins: {
+                    'mathtype': '/node_modules/@wiris/mathtype-tinymce6/plugin.min.js'
+                },
+                skin: 'oxide-dark',
+                content_css: 'dark'
+            };
 
-        tinymce.init(tinymceConfig);
+            tinymce.init({
+                selector: '#pertanyaan',
+                ...tinymceConfig
+            });
 
-        document.addEventListener('DOMContentLoaded', function () {
             const tipeSoalSelect = document.getElementById('tipe_soal');
-            const pilihanGandaSection = document.getElementById('pilihan-ganda-section');
-            const isianSection = document.getElementById('isian-section');
-            const tambahPilihanBtn = document.getElementById('tambah-pilihan');
+            const pilihanSection = document.getElementById('pilihan-jawaban-section');
+            const isianSection = document.getElementById('jawaban-isian-section');
             const pilihanWrapper = document.getElementById('pilihan-wrapper');
+            const tambahPilihanBtn = document.getElementById('tambah-pilihan');
             const gambarSoalInput = document.getElementById('gambar_soal');
-            const gambarSoalPreviewContainer = document.getElementById('gambar_soal_preview_container');
-            const gambarSoalPreview = document.getElementById('gambar_soal_preview');
+            const gambarSoalPreview = document.getElementById('gambar-soal-preview');
+            const gambarSoalPreviewContainer = document.getElementById('gambar-soal-preview-container');
 
-            let pilihanCount = 2;
-
-            function setupImagePreview(inputFile, previewImg, previewContainer) {
-                inputFile.addEventListener('change', function(event) {
-                    const file = event.target.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            previewImg.src = e.target.result;
-                            previewContainer.style.display = 'block';
-                        };
-                        reader.readAsDataURL(file);
-                    } else {
-                        previewContainer.style.display = 'none';
-                        previewImg.src = '#';
-                    }
-                });
-            }
+            let pilihanCount = 0;
+            let answerInputType = 'radio';
 
             function toggleSections() {
-                const tipe = tipeSoalSelect.value;
-                if (tipe === 'pilihan_ganda' || tipe === 'pilihan_ganda_majemuk') {
-                    pilihanGandaSection.style.display = 'block';
-                    isianSection.style.display = 'none';
-                } else {
-                    pilihanGandaSection.style.display = 'none';
+                if (tipeSoalSelect.value === 'isian') {
+                    pilihanSection.style.display = 'none';
                     isianSection.style.display = 'block';
+                } else {
+                    pilihanSection.style.display = 'block';
+                    isianSection.style.display = 'none';
                 }
             }
 
             function toggleAnswerInputType() {
-                const isMajemuk = tipeSoalSelect.value === 'pilihan_ganda_majemuk';
-                const inputs = pilihanWrapper.querySelectorAll('.jawaban-benar-input');
-                inputs.forEach(input => {
-                    input.type = isMajemuk ? 'checkbox' : 'radio';
-                    input.name = isMajemuk ? 'jawaban_benar[]' : 'jawaban_benar';
+                answerInputType = (tipeSoalSelect.value === 'pilihan_ganda_majemuk') ? 'checkbox' : 'radio';
+                document.querySelectorAll('input[name="jawaban_benar[]"], input[name="jawaban_benar"]').forEach(input => {
+                    input.type = answerInputType;
                 });
             }
 
-            tipeSoalSelect.addEventListener('change', function() {
-                toggleSections();
-                toggleAnswerInputType();
-            });
+            function setupImagePreview(input, previewImg, previewContainer) {
+                input.addEventListener('change', function(e) {
+                    if (e.target.files && e.target.files[0]) {
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            previewImg.src = event.target.result;
+                            previewContainer.style.display = 'block';
+                        }
+                        reader.readAsDataURL(e.target.files[0]);
+                    }
+                });
+            }
 
-            tambahPilihanBtn.addEventListener('click', function () {
-                const newPilihanDiv = document.createElement('div');
-                newPilihanDiv.className = 'flex items-start space-x-3';
-
-                const isMajemuk = tipeSoalSelect.value === 'pilihan_ganda_majemuk';
-                const inputType = isMajemuk ? 'checkbox' : 'radio';
-                const inputName = isMajemuk ? 'jawaban_benar[]' : 'jawaban_benar';
-                const newEditorId = `editor-pilihan-${pilihanCount}`;
-
-                newPilihanDiv.innerHTML = `
-                    <input type="${inputType}" name="${inputName}" value="${pilihanCount}" class="jawaban-benar-input text-indigo-600 focus:ring-indigo-500 mt-2">
-                    <div class="w-full">
-                        <textarea id="${newEditorId}" name="pilihan[]" class="editor-pilihan w-full mb-2" rows="3" placeholder="Opsi ${String.fromCharCode(65 + pilihanCount)}"></textarea>
-                        <input type="file" name="gambar_pilihan[${pilihanCount}]" class="gambar-pilihan-input w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
+            function addPilihan(isFirst = false) {
+                 const newEditorId = `pilihan-editor-${pilihanCount}`;
+                 const newPilihanDiv = document.createElement('div');
+                 newPilihanDiv.className = 'p-4 border border-gray-700 rounded-lg bg-gray-900/50';
+                 newPilihanDiv.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 flex items-center h-full mt-1">
+                            <input type="${answerInputType}" name="${answerInputType === 'radio' ? 'jawaban_benar' : 'jawaban_benar[]'}" value="${pilihanCount}" class="focus:ring-yellow-500 h-4 w-4 text-yellow-600 border-gray-500 bg-gray-700">
+                        </div>
+                        <div class="ms-4 flex-grow">
+                             <label for="${newEditorId}" class="block text-sm font-medium text-gray-300 mb-1">Teks Opsi Jawaban ${pilihanCount + 1}</label>
+                             <textarea id="${newEditorId}" name="pilihan[${pilihanCount}]" class="pilihan-editor hidden"></textarea>
+                        </div>
+                        ${!isFirst ? `<button type="button" class="remove-pilihan ms-4 text-red-500 hover:text-red-400">&times;</button>` : ''}
+                    </div>
+                    <div class="mt-4 pl-8">
+                        <label for="gambar_pilihan_${pilihanCount}" class="block text-sm font-medium text-gray-300">Gambar Opsi (Opsional)</label>
+                         <input id="gambar_pilihan_${pilihanCount}" name="gambar_pilihan[${pilihanCount}]" type="file" class="gambar-pilihan-input block mt-1 w-full text-sm text-gray-300 border border-gray-600 rounded-md cursor-pointer bg-gray-700 focus:outline-none file:bg-gray-600 file:text-gray-200 file:border-0 file:py-2 file:px-4">
                         <div class="gambar-pilihan-preview-container hidden mt-2">
-                            <p class="text-sm text-gray-600 mb-2">Pratinjau:</p>
+                            <p class="text-sm text-gray-400 mb-2">Pratinjau:</p>
                             <img src="#" alt="Pratinjau Gambar Opsi" class="gambar-pilihan-preview max-w-xs rounded-lg shadow-sm">
                         </div>
                     </div>
@@ -213,16 +187,26 @@
                 const newImagePreviewContainer = newPilihanDiv.querySelector('.gambar-pilihan-preview-container');
                 setupImagePreview(newImageInput, newImagePreview, newImagePreviewContainer);
 
+                if (!isFirst) {
+                    newPilihanDiv.querySelector('.remove-pilihan').addEventListener('click', () => newPilihanDiv.remove());
+                }
+
                 pilihanCount++;
+            }
+
+            // Inisialisasi awal
+            tipeSoalSelect.addEventListener('change', () => {
+                toggleSections();
+                toggleAnswerInputType();
             });
+
+            tambahPilihanBtn.addEventListener('click', () => addPilihan());
+
+            // Tambah dua pilihan default saat halaman dimuat
+            addPilihan(true);
+            addPilihan(true);
 
             setupImagePreview(gambarSoalInput, gambarSoalPreview, gambarSoalPreviewContainer);
-
-            document.querySelectorAll('.gambar-pilihan-input').forEach(input => {
-                const previewImg = input.closest('div').querySelector('.gambar-pilihan-preview');
-                const previewContainer = input.closest('div').querySelector('.gambar-pilihan-preview-container');
-                setupImagePreview(input, previewImg, previewContainer);
-            });
 
             toggleSections();
             toggleAnswerInputType();

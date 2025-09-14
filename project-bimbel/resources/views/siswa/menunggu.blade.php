@@ -1,14 +1,14 @@
 <x-guest-layout>
-    <div class="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
-        <div class="w-full max-w-md bg-white p-8 rounded-lg shadow-md text-center">
-            <h1 class="text-2xl font-bold text-gray-800 mb-4">Sesi Selesai</h1>
-            <p class="text-gray-600 mb-6">
-                Anda telah menyelesaikan mata pelajaran <span class="font-semibold">{{ $mapelSebelumnya }}</span>.
+    <div class="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4">
+        <div class="w-full max-w-md bg-gray-800 p-8 rounded-lg shadow-md text-center">
+            <h1 class="text-2xl font-bold text-white mb-4">Sesi Selesai</h1>
+            <p class="text-gray-400 mb-6">
+                Anda telah menyelesaikan mata pelajaran <span class="font-semibold text-white">{{ $mapelSebelumnya }}</span>.
             </p>
 
-            <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p class="text-gray-700">Mata pelajaran selanjutnya, <span class="font-semibold">{{ $mapelSelanjutnya }}</span>, akan dimulai dalam:</p>
-                <div x-data="countdownTimer({{ $waktuMulaiSelanjutnya }}, {{ now()->timestamp }})" x-init="init()" class="text-2xl font-bold text-blue-600 mt-2">
+            <div class="p-4 bg-gray-700 border border-gray-600 rounded-lg">
+                <p class="text-gray-300">Mata pelajaran selanjutnya, <span class="font-semibold text-white">{{ $mapelSelanjutnya }}</span>, akan dimulai dalam:</p>
+                <div x-data="countdownTimer({{ $waktuMulaiSelanjutnya }}, {{ now()->timestamp }})" x-init="init()" class="text-2xl font-bold text-yellow-400 mt-2">
                     <span x-text="countdownText"></span>
                 </div>
             </div>

@@ -15,6 +15,7 @@
     <link href="{{ asset('css/custom-styles.css') }}" rel="stylesheet">
     <link href="{{ asset('css/custom-styles.css?v=1.1') }}" rel="stylesheet">
     <link rel="icon" href="{{ asset('images/favicon.png') }}">
+
 </head>
 <body data-spy="scroll" data-target=".fixed-top">
 

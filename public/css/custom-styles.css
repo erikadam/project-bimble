@@ -377,3 +377,19 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.875rem;
     color: #ef4444; /* Warna merah untuk error */
 }
+.header .swiper-container.image-slider-1 {
+  height: 65vh; /* Anda bisa ubah nilai ini, 65vh = 65% tinggi layar */
+}
+
+/* Memastikan setiap slide menyembunyikan gambar yang berlebih */
+.header .swiper-slide {
+  overflow: hidden;
+}
+
+/* Aturan paling penting: memaksa gambar mengisi slide */
+.header .swiper-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Ini akan memotong gambar (bukan merusaknya) agar pas */
+  object-position: center; /* Fokus pada bagian tengah gambar */
+}

@@ -11,7 +11,7 @@
     <link href="{{ asset('css/magnific-popup.css') }}" rel="stylesheet">
     <link href="{{ asset('css/styles.css') }}" rel="stylesheet">
     <link href="{{ asset('css/custom-styles.css') }}" rel="stylesheet">
-    <link rel="icon" href="{{ asset('images/favicon.png') }}">
+    <link rel="icon" href="{{ asset('images/favicon-baru.png') }}">
     <style>
     /* CSS khusus untuk memusatkan konten dan menambah background */
     body, html {

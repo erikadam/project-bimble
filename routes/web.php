@@ -13,9 +13,21 @@ use Carbon\Carbon;
 use App\Http\Controllers\WebsiteSettingController;
 use App\Http\Controllers\TestimonialController;
 use App\Http\Controllers\CompanyGoalController;
+use App\Http\Controllers\UlanganController;
 
 // Halaman utama publik
-Route::get('/', [WebsiteSettingController::class, 'showHomePage'])->name('welcome');
+Route::get('/', [SiswaController::class, 'showAksesUlangan'])->name('welcome');
+Route::post('/ulangan/start', [SiswaController::class, 'startUlangan'])->name('ulangan.start');
+Route::prefix('ulangan-siswa')->name('siswa.ulangan.')->group(function () {
+    Route::get('/pilih/{jenjang}', [SiswaController::class, 'pilihUlangan'])->name('pilih');
+    Route::get('/mulai/{ulangan}', [SiswaController::class, 'mulaiSesiUlangan'])->name('mulai');
+    Route::post('/start/{ulangan}', [SiswaController::class, 'startSesiUlangan'])->name('start');
+    Route::get('/soal/{ulangan}', [SiswaController::class, 'showSoalUlangan'])->name('show_soal');
+    Route::post('/simpan/{ulangan}', [SiswaController::class, 'simpanJawabanUlangan'])->name('simpan');
+    Route::get('/hasil/{ulanganSession}', [SiswaController::class, 'hasilUlangan'])->name('hasil');
+    Route::get('/review', [SiswaController::class, 'reviewUlangan'])->name('review');
+    Route::get('/review/{ulanganSession}', [SiswaController::class, 'reviewUlangan'])->name('review');
+});
 // Route dasbor yang dibuat oleh Breeze
 Route::get('/dashboard', function () {
 
@@ -39,6 +51,9 @@ Route::get('/dashboard', function () {
 
 // Grup route yang hanya bisa diakses setelah login
 Route::middleware('auth')->group(function () {
+
+    Route::resource('about-us', \App\Http\Controllers\AboutUsController::class);
+    Route::post('soal/upload-image', [App\Http\Controllers\SoalController::class, 'uploadImage'])->name('soal.uploadImage');
     Route::resource('company-goals', CompanyGoalController::class);
     Route::resource('testimonials', TestimonialController::class);
     Route::get('/pengaturan-website', [WebsiteSettingController::class, 'index'])->name('pengaturan.index');
@@ -71,7 +86,11 @@ Route::middleware('auth')->group(function () {
     // Rute untuk demo ujian dari halaman detail
     Route::patch('/paket-tryout/{paketTryout}/toggle-status', [PaketTryoutController::class, 'toggleStatus'])->name('paket-tryout.toggle_status');
     Route::get('/paket-tryout/{paketTryout}/review', [PaketTryoutController::class, 'review'])->name('paket-tryout.review');
-
+    Route::get('ulangan/pilih-jenjang', [\App\Http\Controllers\UlanganController::class, 'pilihJenjang'])->name('ulangan.pilihJenjang');
+    Route::resource('ulangan', UlanganController::class);
+    Route::post('ulangan/{ulangan}/toggle-status', [\App\Http\Controllers\UlanganController::class, 'toggleStatus'])->name('ulangan.toggleStatus');
+Route::post('ulangan/{ulangan}/add-soal', [\App\Http\Controllers\UlanganController::class, 'addSoal'])->name('ulangan.addSoal');
+Route::post('ulangan/{ulangan}/remove-soal', [\App\Http\Controllers\UlanganController::class, 'removeSoal'])->name('ulangan.removeSoal');
     // Rute untuk menampilkan daftar paket yang bisa didemokan
     Route::get('/demo-ujian', [PaketTryoutController::class, 'demoIndex'])->name('paket-tryout.demo_index');
     // Rute untuk mekanisme ujian demo
@@ -89,7 +108,7 @@ Route::middleware('auth')->group(function () {
 Route::prefix('ujian-siswa')->name('siswa.')->group(function () {
     Route::get('/pilih-jenjang', [SiswaController::class, 'pilihJenjang'])->name('pilih_jenjang');
     Route::get('/akses-ulangan', [SiswaController::class, 'aksesUlangan'])->name('akses_ulangan');
-    // --- RUTE INI DIMODIFIKASI ---
+     Route::get('/pilih-ulangan/{jenjang?}', [SiswaController::class, 'pilihUlangan'])->name('pilih_ulangan');
     Route::get('/pilih-event/{jenjang?}', [SiswaController::class, 'pilihEvent'])->name('pilih_event');
     Route::get('/pilih-paket/{jenjang?}', [SiswaController::class, 'pilihPaket'])->name('pilih_paket');
     Route::prefix('{paketTryout}')->name('ujian.')->group(function () {
@@ -101,7 +120,13 @@ Route::prefix('ujian-siswa')->name('siswa.')->group(function () {
         Route::post('/jawab-mapel/{mapelId}', [SiswaController::class, 'simpanJawaban'])->name('simpan_jawaban');
         Route::get('/hasil', [SiswaController::class, 'hasil'])->name('hasil');
         Route::get('/unduh-hasil', [SiswaController::class, 'unduhHasil'])->name('unduh_hasil');
+        Route::get('/review', [SiswaController::class, 'review'])->name('review');
+
     });
 });
-
+Route::prefix('ulangan/{ulangan}/laporan')->name('ulangan.laporan.')->group(function () {
+    Route::get('/responses', [\App\Http\Controllers\LaporanUlanganController::class, 'responses'])->name('responses');
+    Route::get('/analysis', [\App\Http\Controllers\LaporanUlanganController::class, 'analysis'])->name('analysis');
+    Route::post('/update-kesulitan', [\App\Http\Controllers\LaporanUlanganController::class, 'updateKesulitan'])->name('update_kesulitan');
+});
 require __DIR__.'/auth.php';

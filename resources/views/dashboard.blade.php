@@ -75,15 +75,15 @@
                         </div>
                     </div>
                 </a>
-                <a href="{{ route('paket-tryout.demo_index') }}" class="block p-6 bg-white dark:bg-brand-dark-secondary border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-lg hover:border-brand-yellow transition-all duration-300 transform hover:-translate-y-1">
-                    <div class="flex items-center">
-                        <div class="text-4xl mr-4">🕹️</div>
-                        <div>
-                            <h4 class="text-xl font-bold text-gray-800 dark:text-gray-200">Demo Ujian</h4>
-                            <p class="text-gray-500 dark:text-gray-400">Lihat dari sudut pandang siswa.</p>
-                        </div>
-                    </div>
-                </a>
+                <a href="{{ route('ulangan.pilihJenjang') }}" class="block p-6 bg-white dark:bg-brand-dark-secondary border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-lg hover:border-brand-yellow transition-all duration-300 transform hover:-translate-y-1">
+    <div class="flex items-center">
+        <div class="text-4xl mr-4">📝</div>
+        <div>
+            <h4 class="text-xl font-bold text-gray-800 dark:text-gray-200">Manajemen Ulangan</h4>
+            <p class="text-gray-500 dark:text-gray-400">Buat, edit, dan kelola ulangan mandiri.</p>
+        </div>
+    </div>
+</a>
 
                 <a href="{{ route('users.index') }}" class="block p-6 bg-white dark:bg-brand-dark-secondary border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-lg hover:border-brand-yellow transition-all duration-300 transform hover:-translate-y-1">
                     <div class="flex items-center">

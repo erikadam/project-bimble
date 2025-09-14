@@ -5,86 +5,119 @@
 @section('content')
 
 <header id="header" class="header">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="text-container">
+                    <h1>Portal Ujian Online & Tryout</h1>
+                    <p class="p-large">Uji kemampuan dan pengetahuan Anda dengan ribuan soal berkualitas yang disusun oleh para ahli. Siap hadapi tantangan?</p>
+
+                    <a class="btn-solid-lg" href="{{ route('siswa.pilih_jenjang') }}">MULAI TRYOUT SEKARANG</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="outer-container">
         <div class="container">
             <div class="row">
                 <div class="col-lg-12">
-                    <div class="text-container">
-                        <h1>Portal Ujian Online & Tryout</h1>
-                        <p class="p-large">Uji kemampuan dan pengetahuan Anda dengan ribuan soal berkualitas yang disusun oleh para ahli. Siap hadapi tantangan?</p>
-
-                        <a class="btn-solid-lg" href="{{ route('siswa.pilih_jenjang') }}">MULAI TRYOUT SEKARANG</a>
-                    </div>
+                    <h2 class="h2-heading">Our Documentation</h2>
                 </div>
             </div>
         </div>
-        <div class="outer-container">
-            <div class="container">
-                <div class="row">
-                    <div class="col-lg-12">
-                         <h2 class="h2-heading">Our Documentation</h2>
-                    </div>
+        <div class="slider-container">
+            <div class="swiper-container image-slider-1">
+                <div class="swiper-wrapper">
+                    @forelse ($sliders as $image)
+                        <div class="swiper-slide">
+                            {{-- Tambahkan class="slider-image" di sini --}}
+                            <img class="img-fluid slider-image" src="{{ asset('storage/' . $image->path) }}" alt="slider image">
+                        </div>
+                    @empty
+                        <div class="swiper-slide">
+                            {{-- Tambahkan class="slider-image" di sini --}}
+                            <img class="img-fluid slider-image" src="{{ asset('images/header-slide-1.jpg') }}" alt="siswa belajar">
+                        </div>
+                        <div class="swiper-slide">
+                            {{-- Tambahkan class="slider-image" di sini --}}
+                            <img class="img-fluid slider-image" src="{{ asset('images/header-slide-2.jpg') }}" alt="ruang kelas">
+                        </div>
+                    @endforelse
                 </div>
-            </div>
-            <div class="slider-container">
-                <div class="swiper-container image-slider-1">
-                    <div class="swiper-wrapper">
-                        @forelse ($sliderImages as $image)
-                            <div class="swiper-slide">
-                                {{-- Tambahkan class="slider-image" di sini --}}
-                                <img class="img-fluid slider-image" src="{{ asset('storage/' . $image->path) }}" alt="slider image">
-                            </div>
-                        @empty
-                            <div class="swiper-slide">
-                                {{-- Tambahkan class="slider-image" di sini --}}
-                                <img class="img-fluid slider-image" src="{{ asset('images/header-slide-1.jpg') }}" alt="siswa belajar">
-                            </div>
-                            <div class="swiper-slide">
-                                {{-- Tambahkan class="slider-image" di sini --}}
-                                <img class="img-fluid slider-image" src="{{ asset('images/header-slide-2.jpg') }}" alt="ruang kelas">
-                            </div>
-                        @endforelse
-                    </div>
-                    <div class="swiper-button-next"></div>
-                    <div class="swiper-button-prev"></div>
-                </div>
+                <div class="swiper-button-next"></div>
+                <div class="swiper-button-prev"></div>
             </div>
         </div>
-    </header> <div id="register" class="form-1">
-
+    </div>
+</header>
+<div id="register" class="form-1">
     <div class="container">
         <div class="row">
             <div class="col-lg-6">
                 <div class="text-container">
-                    <h2>Daftar Untuk Memulai Ujian</h2>
-                    <p>Ujian online adalah cara terbaik untuk meningkatkan pengetahuan dan keterampilan Anda di bidang tertentu. Dan dapat diakses dari mana saja dengan koneksi internet.</p>
+                    <h2>Daftar Untuk Memulai Ulangan</h2>
+                    <p>Isi formulir di bawah ini untuk memulai ulangan mandiri sesuai dengan jenjang pendidikan Anda. Tidak ada batasan waktu, jadi kerjakan dengan santai!</p>
                     <ul class="list-unstyled li-space-lg">
                         <li class="media">
-                            <i class="fas fa-square"></i><div class="media-body"><strong>Informasi Anda</strong> diperlukan untuk menyelesaikan pendaftaran</div>
+                            <i class="fas fa-square"></i><div class="media-body"><strong>Informasi Anda</strong> diperlukan untuk mempersonalisasi hasil ulangan.</div>
                         </li>
                         <li class="media">
-                            <i class="fas fa-square"></i><div class="media-body"><strong>Aman bersama kami</strong> dan tidak akan digunakan untuk pemasaran</div>
+                            <i class="fas fa-square"></i><div class="media-body"><strong>Akses mudah</strong> ke mata pelajaran ulangan yang telah disiapkan.</div>
                         </li>
                     </ul>
-                </div> </div> <div class="col-lg-6">
+                </div>
+            </div>
+            <div class="col-lg-6">
                 <div class="form-container">
-                    <form id="registrationForm" data-toggle="validator" data-focus="false" action="#">
+                    @if (session('error'))
+                        <div class="alert alert-danger" role="alert">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+                    <form id="ulanganForm" method="POST" action="{{ route('ulangan.start') }}">
+                        @csrf
                         <div class="form-group">
-                            <input type="text" class="form-control-input" id="rname" name="rname" required>
-                            <label class="label-control" for="rname">Nama Lengkap</label>
+                            <input type="text" class="form-control-input" id="nama_lengkap" name="nama_lengkap" value="{{ old('nama_lengkap') }}" required>
+                            <label class="label-control" for="nama_lengkap">Nama Lengkap</label>
+                            @error('nama_lengkap')
+                                <div class="text-danger mt-2">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="form-group">
-                            <input type="email" class="form-control-input" id="remail" name="remail" required>
-                            <label class="label-control" for="remail">Alamat Email</label>
+                            <input type="text" class="form-control-input" id="kelas" name="kelas" value="{{ old('kelas') }}" required>
+                            <label class="label-control" for="kelas">Kelas</label>
+                            @error('kelas')
+                                <div class="text-danger mt-2">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="form-group">
-                            <input type="text" class="form-control-input" id="rphone" name="rphone" required>
-                            <label class="label-control" for="rphone">Nomor Telepon</label>
+                            <input type="text" class="form-control-input" id="asal_sekolah" name="asal_sekolah" value="{{ old('asal_sekolah') }}" required>
+                            <label class="label-control" for="asal_sekolah">Asal Sekolah</label>
+                            @error('asal_sekolah')
+                                <div class="text-danger mt-2">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="form-group">
-                            <button type="submit" class="form-control-submit-button">DAFTAR</button>
+                            <select id="jenjang_pendidikan" name="jenjang_pendidikan" class="form-control-input" required>
+                                <option value="" disabled selected>Pilih Jenjang</option>
+                                <option value="SD">SD</option>
+                                <option value="SMP">SMP</option>
+                                <option value="SMA">SMA</option>
+                            </select>
+                            <label class="label-control" for="jenjang_pendidikan">Jenjang Pendidikan</label>
+                            @error('jenjang_pendidikan')
+                                <div class="text-danger mt-2">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="form-control-submit-button">MULAI ULANGAN</button>
                         </div>
                     </form>
-                </div> </div> </div> </div> </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="basic-2">
     <div class="container">
         <div class="row">
@@ -147,7 +180,9 @@
                             <div class="media-body">contact@corso.com</div>
                         </li>
                     </ul>
-                </div> </div> <div class="col-lg-6">
+                </div>
+            </div>
+            <div class="col-lg-6">
                 <form id="contactForm" data-toggle="validator" data-focus="false">
                     <div class="form-group">
                         <input type="text" class="form-control-input" id="cname" required>
@@ -165,7 +200,6 @@
                         <button type="submit" class="form-control-submit-button">KIRIM PESAN</button>
                     </div>
                 </form>
-                </div>
             </div>
         </div>
     </div>
@@ -174,24 +208,23 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-12">
-
                 {{-- Bagian Visi --}}
-                @if($visi->isNotEmpty())
+                @if(isset($companyGoals['visi']) && $companyGoals['visi']->isNotEmpty())
                 <div class="mb-5">
                     <h2 class="h2-heading">Visi</h2>
                     {{-- Mengambil deskripsi dari Visi pertama sebagai satu paragraf --}}
-                    <p class="visi-paragraph">{{ $visi->first()->description }}</p>
+                    <p class="visi-paragraph">{{ $companyGoals['visi']->first()->description }}</p>
                 </div>
                 @endif
 
                 {{-- Bagian Misi --}}
-                @if($misi->isNotEmpty())
+                @if(isset($companyGoals['misi']) && $companyGoals['misi']->isNotEmpty())
                 <div class="mb-5">
                     <h2 class="h2-heading">Misi</h2>
                     <div class="point-list">
                         <ul>
                             {{-- Menggabungkan semua poin Misi menjadi satu daftar --}}
-                            @foreach($misi as $item)
+                            @foreach($companyGoals['misi'] as $item)
                                 <li>{{ $item->description }}</li>
                             @endforeach
                         </ul>
@@ -200,20 +233,19 @@
                 @endif
 
                 {{-- Bagian Tujuan --}}
-                @if($tujuan->isNotEmpty())
+                @if(isset($companyGoals['tujuan']) && $companyGoals['tujuan']->isNotEmpty())
                 <div>
                     <h2 class="h2-heading">Tujuan</h2>
                     <div class="point-list">
                         <ul>
                             {{-- Menggabungkan semua poin Tujuan menjadi satu daftar --}}
-                            @foreach($tujuan as $item)
+                            @foreach($companyGoals['tujuan'] as $item)
                                 <li>{{ $item->description }}</li>
                             @endforeach
                         </ul>
                     </div>
                 </div>
                 @endif
-
             </div>
         </div>
     </div>

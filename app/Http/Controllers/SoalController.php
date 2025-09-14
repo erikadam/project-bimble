@@ -22,10 +22,11 @@ class SoalController extends Controller
 
     public function index(MataPelajaran $mataPelajaran)
     {
+        // Mengubah dari get() menjadi paginate()
         $soalItems = $mataPelajaran->soal()
-            ->orderBy('status', 'asc')
-            ->orderBy('created_at', 'desc')
-            ->get();
+                                ->orderBy('status', 'asc')
+                                ->orderBy('created_at', 'desc')
+                                ->get();
 
         return view('soal.index', compact('mataPelajaran', 'soalItems'));
     }

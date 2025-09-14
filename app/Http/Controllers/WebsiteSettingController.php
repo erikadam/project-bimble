@@ -15,19 +15,21 @@ class WebsiteSettingController extends Controller
     }
 
     public function storeSliderImage(Request $request)
-    {
-        $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-        ]);
+{
+    $request->validate([
+        'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+    ]);
 
-        $path = $request->file('image')->store('public/sliders');
+    // Simpan gambar di disk 'public' dalam folder 'sliders'
+    $path = $request->file('image')->store('sliders', 'public');
 
-        SliderImage::create([
-            'path' => str_replace('public/', '', $path)
-        ]);
+    // Simpan path yang benar ke database
+    SliderImage::create([
+        'path' => $path
+    ]);
 
-        return back()->with('success', 'Gambar slider berhasil diunggah.');
-    }
+    return back()->with('success', 'Gambar slider berhasil diunggah.');
+}
 
     public function destroySliderImage(SliderImage $image)
     {

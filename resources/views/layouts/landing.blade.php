@@ -5,7 +5,7 @@
     {{-- ... (kode head lainnya tetap sama) ... --}}
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Corso - Online Training Course</title>
+    <title>Petpid Education</title>
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,400i,600,700,700i&display=swap" rel="stylesheet">
     <link href="{{ asset('css/bootstrap.css') }}" rel="stylesheet">
     <link href="{{ asset('css/fontawesome-all.css') }}" rel="stylesheet">
@@ -14,7 +14,8 @@
     <link href="{{ asset('css/styles.css') }}" rel="stylesheet">
     <link href="{{ asset('css/custom-styles.css') }}" rel="stylesheet">
     <link href="{{ asset('css/custom-styles.css?v=1.1') }}" rel="stylesheet">
-    <link rel="icon" href="{{ asset('images/favicon.png') }}">
+    <link rel="icon" href="{{ asset('images/favicon-baru.png') }}">
+    @yield('custom-styles')
 </head>
 <body data-spy="scroll" data-target=".fixed-top">
 
@@ -24,7 +25,7 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top">
         <div class="container">
-            <a class="navbar-brand logo-image" href="{{ url('/') }}"><img src="{{ asset('images/logo.svg') }}" alt="alternative"></a>
+            <a class="navbar-brand logo-image" href="{{ url('/') }}"><img src="{{ asset('images/logo-baru.png') }}" alt="alternative"></a>
 
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-awesome fas fa-bars"></span>
@@ -33,14 +34,21 @@
 
             <div class="collapse navbar-collapse" id="navbarsExampleDefault">
                 <ul class="navbar-nav ml-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            IKUTI UJIAN
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item" href="{{ route('siswa.pilih_jenjang') }}"><span class="item-text">TRYOUT & EVENT</span></a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="{{ route('welcome') }}#register"><span class="item-text">ULANGAN MANDIRI</span></a>
+                        </div>
+                    </li>
                     <li class="nav-item">
-                        <a class="nav-link page-scroll" href="{{ route('siswa.pilih_jenjang') }}">TRYOUT MURID</a>
+                        <a class="nav-link page-scroll" href="{{ route('welcome') }}#about">TENTANG KAMI</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link page-scroll" href="{{ route('dashboard') }}">HALAMAN GURU</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link page-scroll" href="#contact">KONTAK</a>
                     </li>
                 </ul>
                 <span class="nav-item">
@@ -85,7 +93,7 @@
                         <p class="p-small">For news & updates follow us</p>
                         <a href="#your-link"><i class="fab fa-facebook-f"></i></a>
                         <a href="#your-link"><i class="fab fa-twitter"></i></a>
-                        <a href="#your-link"><i class="fab fa-instagram"></i></a>
+                        <a href="https://www.instagram.com/petpid.education?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="><i class="fab fa-instagram"></i></a>
                     </div>
                 </div> </div> </div> </div> <div class="copyright">
         <div class="container">

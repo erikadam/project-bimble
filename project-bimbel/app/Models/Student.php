@@ -15,9 +15,15 @@ class Student extends Model
         'jenjang_pendidikan',
         'kelompok',
         'session_id',
+        'kelas',
+        'asal_sekolah',
     ];
         public function jawabanPeserta()
     {
         return $this->hasMany(JawabanPeserta::class);
+    }
+        public function paketTryout()
+    {
+        return $this->belongsTo(PaketTryout::class);
     }
 }

@@ -17,21 +17,19 @@
                         Pilih gambar untuk ditambahkan ke slider halaman utama. Ukuran ideal adalah 1920x825 piksel.
                     </p>
 
-                    <form method="post" action="{{ route('pengaturan.slider.store') }}" enctype="multipart/form-data" class="mt-6 space-y-6">
-                        @csrf
-                        <div>
-                            <x-input-label for="slider_image" :value="__('Berkas Gambar')" />
-                            <input id="slider_image" name="slider_image" type="file" class="mt-1 block w-full text-gray-400" required />
-                            <x-input-error class="mt-2" :messages="$errors->get('slider_image')" />
-                        </div>
-
-                        <div class="flex items-center gap-4">
-                            <x-primary-button>{{ __('Simpan') }}</x-primary-button>
-                            @if (session('success'))
-                                <p class="text-sm text-green-600">{{ session('success') }}</p>
-                            @endif
-                        </div>
-                    </form>
+                        <form action="{{ route('pengaturan.slider.store') }}" method="POST" enctype="multipart/form-data" class="mb-6">
+        @csrf
+        <div class="flex items-center space-x-4">
+            <div>
+                <x-input-label for="image" :value="__('Unggah Gambar Baru')" />
+                <input id="image" name="image" type="file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
+                <x-input-error class="mt-2" :messages="$errors->get('image')" />
+            </div>
+            <x-primary-button class="mt-5">
+                {{ __('Simpan') }}
+            </x-primary-button>
+        </div>
+    </form>
                 </div>
             </div>
 

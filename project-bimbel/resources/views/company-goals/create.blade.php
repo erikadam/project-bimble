@@ -1,28 +1,51 @@
 <x-app-layout>
-    <x-slot name="header"><h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ __('Tambah Poin Baru') }}</h2></x-slot>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-200 leading-tight">
+            {{ __('Tambah Poin Baru') }}
+        </h2>
+    </x-slot>
     <div class="py-12">
-        <div class="max-w-md mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 bg-white border-b border-gray-200">
+        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 md:p-8 text-gray-100">
                     <form action="{{ route('company-goals.store') }}" method="POST">
                         @csrf
-                        <div class="mb-4">
-                            <label for="type" class="block">Jenis Poin</label>
-                            <select name="type" id="type" class="w-full rounded" required>
-                                <option value="visi">Visi</option>
-                                <option value="misi">Misi</option>
-                                <option value="tujuan">Tujuan</option>
-                            </select>
+                        <div class="space-y-6">
+                            {{-- Jenis Poin --}}
+                            <div>
+                                <x-input-label for="type" :value="__('Jenis Poin')" class="text-gray-300" />
+                                <select name="type" id="type" class="mt-1 block w-full bg-gray-900 border-gray-600 focus:border-yellow-500 focus:ring-yellow-500 rounded-md shadow-sm text-gray-200" required>
+                                    <option value="visi" @selected(old('type') == 'visi')>Visi</option>
+                                    <option value="misi" @selected(old('type') == 'misi')>Misi</option>
+                                    <option value="tujuan" @selected(old('type') == 'tujuan')>Tujuan</option>
+                                </select>
+                                <x-input-error class="mt-2" :messages="$errors->get('type')" />
+                            </div>
+
+                            {{-- Judul --}}
+                            <div>
+                                <x-input-label for="title" :value="__('Judul (cth: Visi Utama, Misi 1, Tujuan 2)')" class="text-gray-300" />
+                                <x-text-input id="title" name="title" type="text" class="mt-1 block w-full bg-gray-900 border-gray-600 focus:border-yellow-500 focus:ring-yellow-500 text-gray-200" :value="old('title')" required />
+                                <x-input-error class="mt-2" :messages="$errors->get('title')" />
+                            </div>
+
+                            {{-- Deskripsi --}}
+                            <div>
+                                <x-input-label for="description" :value="__('Deskripsi')" class="text-gray-300" />
+                                <textarea name="description" id="description" rows="4" class="mt-1 block w-full bg-gray-900 border-gray-600 focus:border-yellow-500 focus:ring-yellow-500 rounded-md shadow-sm text-gray-200" required>{{ old('description') }}</textarea>
+                                <x-input-error class="mt-2" :messages="$errors->get('description')" />
+                            </div>
                         </div>
-                        <div class="mb-4">
-                            <label for="title" class="block">Judul</label>
-                            <input type="text" name="title" id="title" class="w-full rounded" required>
+
+                        {{-- Tombol Aksi --}}
+                        <div class="flex items-center justify-end mt-8">
+                            <a href="{{ route('company-goals.index') }}" class="text-sm text-gray-400 hover:text-gray-200 underline">
+                                Batal
+                            </a>
+                            <x-primary-button class="ms-4">
+                                {{ __('Simpan') }}
+                            </x-primary-button>
                         </div>
-                        <div class="mb-4">
-                            <label for="description" class="block">Deskripsi</label>
-                            <textarea name="description" id="description" rows="4" class="w-full rounded" required></textarea>
-                        </div>
-                        <button type="submit" class="bg-blue-500 text-white font-bold py-2 px-4 rounded">Simpan</button>
                     </form>
                 </div>
             </div>

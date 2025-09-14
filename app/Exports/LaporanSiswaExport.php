@@ -2,90 +2,94 @@
 
 namespace App\Exports;
 
-use App\Models\Student;
-use App\Models\PaketTryout;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
-class LaporanSiswaExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
+class LaporanSiswaExport implements FromCollection, WithHeadings, WithMapping
 {
-    protected $paketTryout;
-    protected $semuaMapelPaket;
+    protected $students;
+    protected $mataPelajaran;
 
-    public function __construct(PaketTryout $paketTryout)
+    // Constructor menerima daftar siswa dan daftar mapel
+    public function __construct($students, $mataPelajaran)
     {
-        $this->paketTryout = $paketTryout->load('mataPelajaran');
-        $this->semuaMapelPaket = $this->paketTryout->mataPelajaran->sortBy('nama_mapel');
+        $this->students = $students;
+        $this->mataPelajaran = $mataPelajaran;
     }
 
-    /**
-    * @return \Illuminate\Support\Collection
-    */
     public function collection()
     {
-        return Student::where('paket_tryout_id', $this->paketTryout->id)
-                      ->with(['jawabanPeserta.soal'])
-                      ->get();
+        return $this->students;
     }
 
     /**
-     * @return array
+     * Membuat judul kolom (header) secara dinamis.
      */
     public function headings(): array
     {
-        $headers = [
-            'Nama Siswa',
-            'Kelompok',
+        // Header statis di bagian awal
+        $headings = [
+            'Nama Lengkap', 'Kelas', 'Asal Sekolah', 'Jenjang', 'Kelompok', 'Waktu Selesai',
         ];
 
-        foreach ($this->semuaMapelPaket as $mapel) {
-            $headers[] = $mapel->nama_mapel;
+        // Tambahkan nama setiap mata pelajaran sebagai header
+        foreach ($this->mataPelajaran as $mapel) {
+            $headings[] = $mapel->nama_mapel;
         }
 
-        $headers[] = 'Total Skor (%)';
+        // Header statis di bagian akhir
+        $headings = array_merge($headings, [
+            'Jumlah Benar', 'Jumlah Salah', 'Skor Akhir',
+        ]);
 
-        return $headers;
+        return $headings;
     }
 
     /**
-     * @param mixed $student
-     * @return array
+     * Memetakan data setiap siswa ke baris Excel secara dinamis.
      */
     public function map($student): array
     {
-        $jawabanSiswa = $student->jawabanPeserta;
-        $jawabanPerMapel = $jawabanSiswa->groupBy('soal.mata_pelajaran_id');
-        $hasilPerMapel = [];
+        // --- AWAL PERUBAHAN LOGIKA ---
 
-        foreach ($jawabanPerMapel as $mapelId => $jawabanMapel) {
-            $totalSoalMapel = $jawabanMapel->count();
-            $totalBenarMapel = $jawabanMapel->where('apakah_benar', true)->count();
-            $skorMapel = $totalSoalMapel > 0 ? ($totalBenarMapel / $totalSoalMapel) * 100 : 0;
-            $hasilPerMapel[$mapelId] = $skorMapel;
-        }
-
+        // Data statis siswa di bagian awal
         $row = [
-            $student->nama_lengkap,
-            $student->kelompok,
+            $student->nama_lengkap ?? '-',
+            $student->kelas ?? '-',
+            $student->asal_sekolah ?? '-',
+            $student->jenjang_pendidikan ?? '-',
+            $student->kelompok ?? '-',
+            $student->updated_at ? $student->updated_at->format('d M Y, H:i') : '-',
         ];
 
-        foreach ($this->semuaMapelPaket as $mapel) {
-            if (isset($hasilPerMapel[$mapel->id])) {
-                // --- PERBAIKAN DI SINI ---
-                // Menambahkan number_format untuk memastikan dua desimal
-                $row[] = number_format($hasilPerMapel[$mapel->id], 2);
-            } else {
-                $row[] = 'Tidak dikerjakan';
-            }
+        // Loop melalui daftar mapel yang seharusnya ada di paket tryout
+        foreach ($this->mataPelajaran as $mapel) {
+
+            // Filter jawaban siswa hanya untuk mata pelajaran saat ini
+            $jawabanUntukMapelIni = $student->jawabanPeserta->filter(function ($jawaban) use ($mapel) {
+                // Pastikan jawaban terhubung ke soal, DAN soal tersebut milik mapel ini
+                return $jawaban->soal && $jawaban->soal->mata_pelajaran_id == $mapel->id;
+            });
+
+            // Hitung skor (jawaban benar) dari hasil filter di atas
+            $skorMapel = $jawabanUntukMapelIni->where('apakah_benar', true)->count();
+
+            $row[] = $skorMapel;
         }
 
-        $totalSoalKeseluruhan = $jawabanSiswa->count();
-        $totalBenarKeseluruhan = $jawabanSiswa->where('apakah_benar', true)->count();
-        $skorTotal = $totalSoalKeseluruhan > 0 ? ($totalBenarKeseluruhan / $totalSoalKeseluruhan) * 100 : 0;
-        $row[] = number_format($skorTotal, 2);
+        // Hitung skor total dari semua jawaban yang dimiliki siswa
+        $jumlahBenar = $student->jawabanPeserta->where('apakah_benar', true)->count();
+        $jumlahSalah = $student->jawabanPeserta->where('apakah_benar', false)->count();
+
+        // Data statis di bagian akhir
+        $row = array_merge($row, [
+            $jumlahBenar,
+            $jumlahSalah,
+            $jumlahBenar, // Skor total
+        ]);
 
         return $row;
+        // --- AKHIR PERUBAHAN LOGIKA ---
     }
 }
