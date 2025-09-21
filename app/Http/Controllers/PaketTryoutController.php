@@ -56,109 +56,171 @@ class PaketTryoutController extends Controller
     }
 
    public function showAnalysis(PaketTryout $paketTryout)
-    {
-        $paketTryout->load('mataPelajaran');
+{
+    $paketTryout->load('mataPelajaran');
 
-        $allJawaban = JawabanPeserta::where('paket_tryout_id', $paketTryout->id)
-                                    ->has('student')
-                                    ->with(['student', 'soal.pilihanJawaban', 'soal.pernyataans.pilihanJawabans']) // [DITAMBAHKAN]
-                                    ->get();
+    $allJawaban = JawabanPeserta::where('paket_tryout_id', $paketTryout->id)
+                                ->has('student')
+                                ->with(['student', 'soal.pilihanJawaban', 'soal.pernyataans.pilihanJawabans'])
+                                ->get();
 
-        $soalIds = $paketTryout->mataPelajaran()->with('soal')->get()->pluck('soal.*.id')->flatten()->unique();
-        $soals = Soal::whereIn('id', $soalIds)->with('pilihanJawaban', 'mataPelajaran', 'pernyataans.pilihanJawabans')->get(); // [DIUBAH]
+    $soalIds = $paketTryout->mataPelajaran()->with('soal')->get()->pluck('soal.*.id')->flatten()->unique();
+    $soals = Soal::whereIn('id', $soalIds)->with('pilihanJawaban', 'mataPelajaran', 'pernyataans.pilihanJawabans')->get();
 
-        $totalResponses = Student::where('paket_tryout_id', $paketTryout->id)->count();
+    $totalResponses = Student::where('paket_tryout_id', $paketTryout->id)->count();
 
-        // MODIFIKASI: Perhitungan tingkat kesulitan soal
-        $soals->each(function ($soal) use ($allJawaban, $totalResponses) {
+    // Perhitungan tingkat kesulitan soal (TIDAK ADA PERUBAHAN DI SINI)
+    $soals->each(function ($soal) use ($allJawaban, $totalResponses) {
+        $jawabanForThisSoal = $allJawaban->where('soal_id', $soal->id);
+        $totalCorrect = $jawabanForThisSoal->where('apakah_benar', true)->count();
+        if ($totalResponses > 0) {
+            $tingkatKesulitan = ($totalCorrect / $totalResponses) * 100;
+            $soal->tingkat_kesulitan = round($tingkatKesulitan, 2);
+            $soal->save();
+        } else {
+            $soal->tingkat_kesulitan = null;
+            $soal->save();
+        }
+    });
+
+
+    $analysisDataByMapel = $soals->groupBy('mataPelajaran.nama_mapel')->map(function ($soalGroup) use ($allJawaban, $totalResponses) {
+
+        return $soalGroup->map(function ($soal) use ($allJawaban, $totalResponses) {
             $jawabanForThisSoal = $allJawaban->where('soal_id', $soal->id);
-            $totalCorrect = $jawabanForThisSoal->where('apakah_benar', true)->count();
-            if ($totalResponses > 0) {
-                $tingkatKesulitan = ($totalCorrect / $totalResponses) * 100;
-                $soal->tingkat_kesulitan = round($tingkatKesulitan, 2);
-                $soal->save(); // Simpan rating ke database
-            } else {
-                $soal->tingkat_kesulitan = null;
-                $soal->save();
-            }
-        });
 
+            // Inisialisasi default
+            $studentsCorrect = collect();
+            $studentsIncorrect = collect();
 
-        $analysisDataByMapel = $soals->groupBy('mataPelajaran.nama_mapel')->map(function ($soalGroup) use ($allJawaban, $totalResponses) {
+            $totalAnswered = $jawabanForThisSoal->filter(function($jawaban) {
+                return !empty($jawaban->jawaban_peserta) && $jawaban->jawaban_peserta !== '[]';
+            })->count();
 
-            return $soalGroup->map(function ($soal) use ($allJawaban, $totalResponses) {
-                $jawabanForThisSoal = $allJawaban->where('soal_id', $soal->id);
+            $analysis = [
+                'id' => $soal->id,
+                'pertanyaan' => $soal->pertanyaan,
+                'tingkat_kesulitan' => $soal->tingkat_kesulitan,
+                'tipe_soal' => $soal->tipe_soal,
+                'pilihan' => collect(),
+                'total_answered' => $totalAnswered,
+            ];
 
+            if ($soal->tipe_soal == 'pilihan_ganda' || $soal->tipe_soal == 'pilihan_ganda_majemuk') {
+                // Logika PG dan PGM tidak berubah
                 $studentsCorrect = $jawabanForThisSoal->where('apakah_benar', true)->pluck('student.nama_lengkap')->sort()->values();
                 $studentsIncorrect = $jawabanForThisSoal->where('apakah_benar', false)->pluck('student.nama_lengkap')->sort()->values();
+                foreach ($soal->pilihanJawaban as $pilihan) {
+                    $count = $jawabanForThisSoal->filter(function($jawaban) use ($pilihan) {
+                        $jawabanPeserta = $jawaban->jawaban_peserta;
+                        if (Str::startsWith($jawabanPeserta, '[') && Str::endsWith($jawabanPeserta, ']')) {
+                            $decoded = json_decode($jawabanPeserta, true);
+                            return is_array($decoded) && in_array($pilihan->pilihan_teks, $decoded);
+                        }
+                        return $jawabanPeserta === $pilihan->pilihan_teks;
+                    })->count();
 
-                $totalAnswered = $jawabanForThisSoal->filter(function($jawaban) {
-                    return !empty($jawaban->jawaban_peserta) && $jawaban->jawaban_peserta !== '[]';
-                })->count();
+                    $analysis['pilihan']->push([
+                        'teks' => $pilihan->pilihan_teks,
+                        'count' => $count,
+                        'is_correct' => $pilihan->apakah_benar,
+                    ]);
+                }
+            }
+            // ===================================================================
+            // PERBAIKAN UTAMA: Logika untuk analisis soal matriks (pilihan_ganda_kompleks)
+            // ===================================================================
+            elseif ($soal->tipe_soal === 'pilihan_ganda_kompleks') {
+                // 1. Buat kunci jawaban yang benar untuk soal ini
+                $kunciJawabanBenar = $soal->pernyataans->mapWithKeys(function ($pernyataan) {
+                    // Cari ID pilihan jawaban yang benar untuk pernyataan ini
+                    $pilihanBenar = $pernyataan->pilihanJawabans->firstWhere('apakah_benar', true);
+                    return [$pernyataan->id => $pilihanBenar ? $pilihanBenar->id : null];
+                });
 
-                $analysis = [
-                    'pertanyaan' => $soal->pertanyaan,
-                    'tingkat_kesulitan' => $soal->tingkat_kesulitan,
-                    'tipe_soal' => $soal->tipe_soal, // [DITAMBAHKAN]
-                    'pilihan' => collect(),
-                    'students_correct' => $studentsCorrect,
-                    'students_incorrect' => $studentsIncorrect,
-                    'total_answered' => $totalAnswered,
-                ];
+                // 2. Evaluasi jawaban setiap siswa
+                foreach ($jawabanForThisSoal as $jawabanSiswa) {
+                    $jawabanDecoded = json_decode($jawabanSiswa->jawaban_peserta, true);
+                    $semuaBenar = true;
 
-                if ($soal->tipe_soal == 'pilihan_ganda' || $soal->tipe_soal == 'pilihan_ganda_majemuk') {
-                    foreach ($soal->pilihanJawaban as $pilihan) {
-                        $count = $jawabanForThisSoal->filter(function($jawaban) use ($pilihan) {
-                            $jawabanPeserta = $jawaban->jawaban_peserta;
-                            if (Str::startsWith($jawabanPeserta, '[') && Str::endsWith($jawabanPeserta, ']')) {
-                                $decoded = json_decode($jawabanPeserta, true);
-                                return is_array($decoded) && in_array($pilihan->pilihan_teks, $decoded);
+                    // Jika jawaban tidak valid atau tidak lengkap, anggap salah
+                    if (json_last_error() !== JSON_ERROR_NONE || count($jawabanDecoded) !== $kunciJawabanBenar->count()) {
+                        $semuaBenar = false;
+                    } else {
+                        // Bandingkan setiap item jawaban siswa dengan kunci
+                        foreach ($kunciJawabanBenar as $pernyataanId => $pilihanBenarId) {
+                            if (!isset($jawabanDecoded[$pernyataanId]) || $jawabanDecoded[$pernyataanId] != $pilihanBenarId) {
+                                $semuaBenar = false;
+                                break; // Jika satu saja salah, seluruh soal dianggap salah
                             }
-                            return $jawabanPeserta === $pilihan->pilihan_teks;
-                        })->count();
+                        }
+                    }
 
-                        $analysis['pilihan']->push([
-                            'teks' => $pilihan->pilihan_teks,
-                            'count' => $count,
-                            'is_correct' => $pilihan->apakah_benar,
-                        ]);
+                    if ($semuaBenar) {
+                        $studentsCorrect->push($jawabanSiswa->student->nama_lengkap);
+                    } else {
+                        $studentsIncorrect->push($jawabanSiswa->student->nama_lengkap);
                     }
                 }
-                // [DITAMBAHKAN] Logika untuk analisis soal matriks
-                elseif ($soal->tipe_soal === 'pilihan_ganda_kompleks') {
-                    $analysis['pernyataans'] = $soal->pernyataans->map(function ($pernyataan) use ($jawabanForThisSoal, $totalResponses) {
-                        $pernyataanData = [
-                            'pernyataan_teks' => $pernyataan->pernyataan_teks,
-                            'jawaban' => []
+
+
+                // 3. Siapkan data untuk ditampilkan di tabel analisis
+                $analysis['pernyataans'] = $soal->pernyataans->map(function ($pernyataan) use ($jawabanForThisSoal, $totalAnswered) {
+                    $pernyataanData = [
+                        'pernyataan_teks' => $pernyataan->pernyataan_teks,
+                        'jawaban' => []
+                    ];
+
+                    foreach ($pernyataan->pilihanJawabans as $pilihan) {
+                        // Hitung berapa banyak siswa yang memilih pilihan INI untuk pernyataan INI
+                        $count = $jawabanForThisSoal->filter(function ($jawaban) use ($pernyataan, $pilihan) {
+                            $jawabanDecoded = json_decode($jawaban->jawaban_peserta, true);
+                            return isset($jawabanDecoded[$pernyataan->id]) && $jawabanDecoded[$pernyataan->id] == $pilihan->id;
+                        })->count();
+
+                        $percentage = $totalAnswered > 0 ? ($count / $totalAnswered) * 100 : 0;
+
+                        $pernyataanData['jawaban'][] = [
+                            'pilihan_teks' => $pilihan->pilihan_teks,
+                            'is_correct' => $pilihan->apakah_benar,
+                            'count' => $count,
+                            'percentage' => $percentage,
                         ];
-                        foreach ($pernyataan->pilihanJawabans as $pilihan) {
-                            $jawabanSiswa = $jawabanForThisSoal->where('jawaban_peserta', 'like', '%"' . $pernyataan->id . '":"' . $pilihan->id . '"%');
-                            $count = $jawabanSiswa->count();
-                            $percentage = $totalResponses > 0 ? ($count / $totalResponses) * 100 : 0;
-                            $pernyataanData['jawaban'][] = [
-                                'pilihan_teks' => $pilihan->pilihan_teks,
-                                'is_correct' => $pilihan->apakah_benar,
-                                'count' => $count,
-                                'percentage' => $percentage,
-                            ];
-                        }
-                        return $pernyataanData;
-                    });
-                    $analysis['kolom'] = $soal->pernyataans->first()->pilihanJawabans->pluck('pilihan_teks')->toArray() ?? [];
-                }
+                    }
+                    return $pernyataanData;
+                });
+                $analysis['kolom'] = $soal->pernyataans->first()->pilihanJawabans->pluck('pilihan_teks')->toArray() ?? [];
+            }
 
-                return (object)$analysis;
-            });
+            // Tambahkan data siswa yang benar/salah ke hasil akhir
+            $analysis['students_correct'] = $studentsCorrect->sort()->values();
+            $analysis['students_incorrect'] = $studentsIncorrect->sort()->values();
+
+            return (object)$analysis;
         });
+    });
 
-        return view('paket-tryout.analysis', compact('paketTryout', 'analysisDataByMapel', 'totalResponses'));
+    return view('paket-tryout.analysis', compact('paketTryout', 'analysisDataByMapel', 'totalResponses'));
+}
+   public function create(Request $request)
+{
+    // Mengambil jenjang dari request, sama seperti kode asli Anda
+    $jenjang = $request->get('jenjang');
+
+    // Memulai query ke model MataPelajaran
+    $mataPelajaranQuery = MataPelajaran::query();
+
+    // Jika ada jenjang, filter berdasarkan jenjang tersebut
+    if ($jenjang) {
+        $mataPelajaranQuery->where('jenjang_pendidikan', $jenjang);
     }
-    public function create(Request $request)
-    {
-        $jenjang = $request->get('jenjang');
-        $mataPelajaran = MataPelajaran::where('jenjang_pendidikan', $jenjang)->with('soal')->get();
-        return view('paket-tryout.create', compact('mataPelajaran', 'jenjang'));
-    }
+
+    // Tambahkan pengurutan: mata pelajaran wajib (is_wajib = 1) akan muncul di atas
+    $mataPelajaran = $mataPelajaranQuery->orderBy('is_wajib', 'desc')->with('soal')->get();
+
+    // Mengirim data yang benar-benar dibutuhkan oleh view Anda
+    return view('paket-tryout.create', compact('mataPelajaran', 'jenjang'));
+}
 
 
     public function laporanIndex(Request $request)
@@ -256,96 +318,124 @@ class PaketTryoutController extends Controller
 
 
     public function showResponses(PaketTryout $paketTryout)
-    {
-        $paketTryout->load(['mataPelajaran', 'soalPilihan']);
-        $students = Student::where('paket_tryout_id', $paketTryout->id)
-                           ->with(['jawabanPeserta.soal.mataPelajaran', 'jawabanPeserta.soal.pilihanJawaban'])
-                           ->get();
+{
+    // Eager load semua relasi yang dibutuhkan untuk mengurangi query N+1
+    $paketTryout->load(['mataPelajaran', 'soalPilihan.pernyataans.pilihanJawabans']);
 
-        $responseCount = $students->count();
-        $semuaMapelPaket = $paketTryout->mataPelajaran;
-        $bobotSoal = $paketTryout->soalPilihan->pluck('pivot.bobot', 'id');
-        $totalBobotPaket = $bobotSoal->sum();
-        $averageScore = 0;
+    $students = Student::where('paket_tryout_id', $paketTryout->id)
+                       ->with(['jawabanPeserta.soal.mataPelajaran', 'jawabanPeserta.soal.pilihanJawaban', 'jawabanPeserta.soal.pernyataans.pilihanJawabans'])
+                       ->get();
 
-        if ($responseCount > 0) {
-            foreach ($students as $student) {
-                $jawabanSiswa = $student->jawabanPeserta;
-                $hasilPerMapel = [];
+    $responseCount = $students->count();
+    $semuaMapelPaket = $paketTryout->mataPelajaran;
+    $bobotSoal = $paketTryout->soalPilihan->pluck('pivot.bobot', 'id');
+    $totalBobotPaket = $bobotSoal->sum();
+    $averageScore = 0;
 
-                foreach ($semuaMapelPaket as $mapel) {
-                    $hasilPerMapel[$mapel->id] = [
-                        'nama_mapel' => $mapel->nama_mapel,
-                        'total_soal' => 0,
-                        'total_benar' => 0,
-                        'skor' => 0,
-                        'dikerjakan' => false,
-                        'detail_jawaban' => [],
-                    ];
-                }
+    if ($responseCount > 0) {
+        foreach ($students as $student) {
+            $jawabanSiswa = $student->jawabanPeserta;
+            $hasilPerMapel = [];
 
-                $jawabanPerMapel = $jawabanSiswa->groupBy('soal.mata_pelajaran_id');
-                $totalBobotDiperoleh = 0;
+            // Inisialisasi struktur hasil untuk semua mapel dalam paket
+            foreach ($semuaMapelPaket as $mapel) {
+                $hasilPerMapel[$mapel->id] = [
+                    'nama_mapel' => $mapel->nama_mapel,
+                    'total_soal' => 0,
+                    'total_benar' => 0,
+                    'skor' => 0,
+                    'dikerjakan' => false,
+                    'detail_jawaban' => [],
+                ];
+            }
 
-                foreach ($jawabanPerMapel as $mapelId => $jawabanMapel) {
-                    if (isset($hasilPerMapel[$mapelId])) {
-                        $totalSoalMapel = 0;
-                        $totalBenarMapel = 0;
-                        $totalBobotMapel = 0;
-                        $totalBobotDiperolehMapel = 0;
+            $jawabanPerMapel = $jawabanSiswa->groupBy('soal.mata_pelajaran_id');
+            $totalBobotDiperoleh = 0;
 
-                        foreach ($jawabanMapel as $jawaban) {
-                            $bobot = $bobotSoal[$jawaban->soal_id] ?? 1;
-                            $totalSoalMapel++;
-                            $totalBobotMapel += $bobot;
-                            if ($jawaban->apakah_benar) {
-                                $totalBenarMapel++;
-                                $totalBobotDiperolehMapel += $bobot;
-                            }
+            foreach ($jawabanPerMapel as $mapelId => $jawabanMapel) {
+                if (isset($hasilPerMapel[$mapelId])) {
+                    $totalSoalMapel = $jawabanMapel->count();
+                    $totalBenarMapel = $jawabanMapel->where('apakah_benar', true)->count();
+                    $totalBobotMapel = 0;
+                    $totalBobotDiperolehMapel = 0;
+
+                    foreach ($jawabanMapel as $jawaban) {
+                        $bobot = $bobotSoal[$jawaban->soal_id] ?? 1;
+                        $totalBobotMapel += $bobot;
+                        if ($jawaban->apakah_benar) {
+                            $totalBobotDiperolehMapel += $bobot;
+                        }
+                    }
+
+                    $totalBobotDiperoleh += $totalBobotDiperolehMapel;
+                    $skorMapel = $totalBobotMapel > 0 ? ($totalBobotDiperolehMapel / $totalBobotMapel) * 100 : 0;
+
+                    // ===================================================================
+                    // PERBAIKAN UTAMA: Penyiapan data detail jawaban untuk semua tipe soal
+                    // ===================================================================
+                    $detailJawaban = $jawabanMapel->map(function($item) use ($bobotSoal) {
+                        $soal = $item->soal;
+                        $data = [
+                            'pertanyaan' => $soal->pertanyaan,
+                            'tipe_soal' => $soal->tipe_soal,
+                            'jawaban_peserta' => $item->jawaban_peserta,
+                            'is_correct' => $item->apakah_benar,
+                            'bobot' => $bobotSoal[$soal->id] ?? 1,
+                            'kunci_jawaban' => null, // default
+                            'detail_matriks' => [] // default
+                        ];
+
+                        if ($soal->tipe_soal == 'pilihan_ganda' || $soal->tipe_soal == 'pilihan_ganda_majemuk') {
+                            $data['kunci_jawaban'] = $soal->pilihanJawaban->where('apakah_benar', true)->pluck('pilihan_teks')->implode(', ');
+                        }
+                        elseif ($soal->tipe_soal == 'pilihan_ganda_kompleks') {
+                            $jawabanPesertaDecoded = json_decode($item->jawaban_peserta, true) ?? [];
+                            $data['detail_matriks'] = $soal->pernyataans->map(function ($pernyataan) use ($jawabanPesertaDecoded) {
+                                $kunci = $pernyataan->pilihanJawabans->firstWhere('apakah_benar', true);
+                                $jawabanSiswaId = $jawabanPesertaDecoded[$pernyataan->id] ?? null;
+                                $jawabanSiswaObj = $pernyataan->pilihanJawabans->firstWhere('id', $jawabanSiswaId);
+
+                                return [
+                                    'pernyataan' => $pernyataan->pernyataan_teks,
+                                    'jawaban_siswa_teks' => $jawabanSiswaObj ? $jawabanSiswaObj->pilihan_teks : '(Tidak Dijawab)',
+                                    'kunci_jawaban_teks' => $kunci ? $kunci->pilihan_teks : '-',
+                                    'is_row_correct' => $jawabanSiswaId !== null && $kunci && $jawabanSiswaId == $kunci->id
+                                ];
+                            });
                         }
 
-                        $totalBobotDiperoleh += $totalBobotDiperolehMapel;
-                        $skorMapel = $totalBobotMapel > 0 ? ($totalBobotDiperolehMapel / $totalBobotMapel) * 100 : 0;
+                        return $data;
+                    });
 
-                        $detailJawaban = $jawabanMapel->map(function($item) use ($bobotSoal) {
-                            return [
-                                'pertanyaan' => $item->soal->pertanyaan,
-                                'jawaban_peserta' => $item->jawaban_peserta,
-                                'kunci_jawaban' => $item->soal->pilihanJawaban->where('apakah_benar', true)->pluck('pilihan_teks')->implode(', '),
-                                'is_correct' => $item->apakah_benar,
-                                'bobot' => $bobotSoal[$item->soal_id] ?? 1
-                            ];
-                        });
-
-                        $hasilPerMapel[$mapelId] = [
-                            'nama_mapel' => $jawabanMapel->first()->soal->mataPelajaran->nama_mapel,
-                            'total_soal' => $totalSoalMapel,
-                            'total_benar' => $totalBenarMapel,
-                            'skor' => round($skorMapel, 2),
-                            'dikerjakan' => true,
-                            'detail_jawaban' => $detailJawaban
-                        ];
-                    }
+                    $hasilPerMapel[$mapelId] = [
+                        'nama_mapel' => $jawabanMapel->first()->soal->mataPelajaran->nama_mapel,
+                        'total_soal' => $totalSoalMapel,
+                        'total_benar' => $totalBenarMapel,
+                        'skor' => round($skorMapel, 2),
+                        'dikerjakan' => true,
+                        'detail_jawaban' => $detailJawaban
+                    ];
                 }
-
-                // MODIFIKASI: Menambahkan data baru untuk ulangan
-                if ($paketTryout->tipe_paket == 'ulangan') {
-                    $student->total_benar = $jawabanSiswa->where('apakah_benar', true)->count();
-                    $student->total_salah = $jawabanSiswa->where('apakah_benar', false)->count();
-                    $student->total_soal = $jawabanSiswa->count();
-                    $student->kelas = $student->kelas; // Menampilkan kelas di laporan
-                    $student->asal_sekolah = $student->asal_sekolah; // Menampilkan asal sekolah
-                }
-
-                $skorTotal = $totalBobotPaket > 0 ? ($totalBobotDiperoleh / $totalBobotPaket) * 100 : 0;
-                $student->skor_total = round($skorTotal, 2);
-                $student->hasil_per_mapel = $hasilPerMapel;
             }
-            $averageScore = $students->avg('skor_total');
-        }
 
-        return view('paket-tryout.responses', compact('paketTryout', 'responseCount', 'averageScore', 'students', 'semuaMapelPaket'));
+            if ($paketTryout->tipe_paket == 'ulangan') {
+                $student->total_benar = $jawabanSiswa->where('apakah_benar', true)->count();
+                $student->total_salah = $jawabanSiswa->where('apakah_benar', false)->count();
+                $student->total_soal = $jawabanSiswa->count();
+                $student->kelas = $student->kelas;
+                $student->asal_sekolah = $student->asal_sekolah;
+            }
+
+            $skorTotal = $totalBobotPaket > 0 ? ($totalBobotDiperoleh / $totalBobotPaket) * 100 : 0;
+            $student->skor_total = round($skorTotal, 2);
+            $student->hasil_per_mapel = $hasilPerMapel;
+        }
+        $averageScore = $students->avg('skor_total');
     }
+
+    // Menggunakan nama view yang sesuai dengan file yang Anda berikan
+    return view('paket-tryout.responses', compact('paketTryout', 'responseCount', 'averageScore', 'students', 'semuaMapelPaket'));
+}
     public function show(PaketTryout $paketTryout)
     {
         // --- PERBAIKAN DI SINI ---

@@ -5,18 +5,28 @@
         </h2>
     </x-slot>
 
+    {{-- =================================================================== --}}
+    {{-- PERBAIKAN 1: Menambahkan soal_id pada modalData                   --}}
+    {{-- =================================================================== --}}
     <div x-data="{
         showModal: false,
         modalData: {
+            id: null,
             question: '',
             studentsCorrect: [],
             studentsIncorrect: []
         },
         openModal(analysis) {
+            this.modalData.id = analysis.id; // Menyimpan ID soal
             this.modalData.question = analysis.pertanyaan;
             this.modalData.studentsCorrect = analysis.students_correct;
             this.modalData.studentsIncorrect = analysis.students_incorrect;
             this.showModal = true;
+        },
+        // Fungsi untuk membuat URL detail soal
+        getSoalDetailUrl(id) {
+            let url = '{{ route('soal.show', ['soal' => ':id']) }}';
+            return url.replace(':id', id);
         }
     }">
         <div class="py-12">
@@ -67,25 +77,25 @@
                                                 <div class="overflow-x-auto p-1 bg-gray-900/50 rounded-lg">
                                                     <table class="min-w-full text-sm">
                                                         <thead>
-                                                            <tr>
-                                                                <th class="p-2 text-left font-medium text-gray-400">Pernyataan</th>
+                                                            <tr class="border-b border-gray-700">
+                                                                <th class="p-3 text-left font-medium text-gray-400">Pernyataan</th>
                                                                 @foreach ($analysis->kolom as $kolomTeks)
-                                                                    <th class="p-2 text-center font-medium text-gray-400">{{ $kolomTeks }}</th>
+                                                                    <th class="p-3 text-center font-medium text-gray-400">{{ $kolomTeks }}</th>
                                                                 @endforeach
                                                             </tr>
                                                         </thead>
                                                         <tbody class="divide-y divide-gray-700">
                                                             @foreach ($analysis->pernyataans as $pernyataan)
-                                                                <tr class="pernyataan-row">
-                                                                    <td class="p-2 align-top text-gray-300">{!! $pernyataan['pernyataan_teks'] !!}</td>
+                                                                <tr>
+                                                                    <td class="p-3 align-top text-gray-300">{!! $pernyataan['pernyataan_teks'] !!}</td>
                                                                     @foreach ($pernyataan['jawaban'] as $jawaban)
-                                                                        <td class="p-2 text-center align-middle">
-                                                                            @if ($jawaban['is_correct'])
-                                                                                <span class="text-green-500 font-bold">✔</span>
-                                                                            @else
-                                                                                <span class="text-red-500">❌</span>
-                                                                            @endif
-                                                                            <span class="text-gray-400 text-xs block mt-1">({{ number_format($jawaban['percentage'], 1) }}%)</span>
+                                                                        <td class="p-3 text-center align-middle @if($jawaban['is_correct']) bg-green-500/10 rounded @endif">
+                                                                            <div class="font-semibold text-lg {{ $jawaban['is_correct'] ? 'text-green-400' : 'text-gray-300' }}">
+                                                                                {{ $jawaban['count'] }}
+                                                                            </div>
+                                                                            <div class="text-gray-400 text-xs mt-1">
+                                                                                ({{ number_format($jawaban['percentage'], 1) }}%)
+                                                                            </div>
                                                                         </td>
                                                                     @endforeach
                                                                 </tr>
@@ -97,14 +107,12 @@
                                                 <div class="space-y-2">
                                                     @foreach ($analysis->pilihan as $pilihan)
                                                         @php
-                                                            // Logika persentase diubah untuk mencegah pembagian dengan nol jika tidak ada yang menjawab
                                                             $percentage = $analysis->total_answered > 0 ? ($pilihan['count'] / $analysis->total_answered) * 100 : 0;
                                                         @endphp
                                                         <div>
                                                             <div class="flex justify-between items-center text-sm mb-1">
                                                                 <span class="flex items-center">
                                                                     <span class="text-gray-300">{!! $pilihan['teks'] !!}</span>
-
                                                                     @if ($pilihan['is_correct'])
                                                                         <svg class="w-4 h-4 text-green-400 ml-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
                                                                     @endif
@@ -129,24 +137,36 @@
                         <p class="text-center text-gray-400">Tidak ada data analisis yang tersedia untuk paket ini.</p>
                     </div>
                 @endforelse
-
             </div>
         </div>
 
+        {{-- Modal Lihat Pengerja --}}
         <div x-show="showModal"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60"
             @keydown.escape.window="showModal = false"
             style="display: none;">
+
             <div @click.outside="showModal = false" class="bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                <div class="p-4 border-b border-gray-700">
+
+                <div class="p-4 border-b border-gray-700 flex-shrink-0">
                     <h3 class="text-lg font-semibold text-gray-100">Detail Pengerja Soal</h3>
+                    {{-- =================================================================== --}}
+                    {{-- PERBAIKAN 2: Batasi Teks Soal & Tambahkan Link Detail             --}}
+                    {{-- =================================================================== --}}
                     <div class="prose prose-sm max-w-none text-gray-300 mt-2">
-                        <div x-html="modalData.question"></div>
+                        {{-- Menampilkan potongan teks soal (misal: 250 karakter) --}}
+                        <div x-html="modalData.question.length > 250 ? modalData.question.substring(0, 250) + '...' : modalData.question"></div>
+
+                        {{-- Tautan "Detail" yang dinamis --}}
+                        <a :href="getSoalDetailUrl(modalData.id)" target="_blank" class="text-yellow-400 text-xs hover:underline mt-1 inline-block">
+                            Lihat Detail Soal &rarr;
+                        </a>
                     </div>
                 </div>
+
                 <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto text-gray-300">
                     <div>
-                        <h4 class="font-semibold text-green-400 mb-2 flex items-center">
+                        <h4 class="font-semibold text-green-400 mb-2 flex items-center sticky top-0 bg-gray-800 py-1">
                             <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             <span x-text="`Jawaban Benar (${modalData.studentsCorrect.length})`"></span>
                         </h4>
@@ -160,7 +180,7 @@
                         </ul>
                     </div>
                     <div>
-                        <h4 class="font-semibold text-red-500 mb-2 flex items-center">
+                        <h4 class="font-semibold text-red-500 mb-2 flex items-center sticky top-0 bg-gray-800 py-1">
                             <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             <span x-text="`Jawaban Salah (${modalData.studentsIncorrect.length})`"></span>
                         </h4>
@@ -174,7 +194,8 @@
                         </ul>
                     </div>
                 </div>
-                <div class="p-4 bg-gray-900 border-t border-gray-700 rounded-b-lg text-right">
+
+                <div class="p-4 bg-gray-900/50 border-t border-gray-700 rounded-b-lg text-right flex-shrink-0">
                     <button @click="showModal = false" class="px-4 py-2 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-yellow-500">Tutup</button>
                 </div>
             </div>

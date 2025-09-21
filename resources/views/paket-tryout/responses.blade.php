@@ -16,18 +16,20 @@
                         <div class="flex flex-wrap justify-between items-center gap-4">
                             <h3 class="text-xl font-bold text-gray-100">Ringkasan</h3>
                             <div class="flex flex-wrap space-x-2">
-                                {{-- Tombol Custom Bobot Nilai --}}
                                 <button type="button" @click="openBobotModal()" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-500 active:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition ease-in-out duration-150">
                                     Custom Bobot Nilai
                                 </button>
-                                {{-- Tombol Analisis Per Soal --}}
                                 <a href="{{ route('paket-tryout.analysis', $paketTryout->id) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-500 active:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition ease-in-out duration-150">
                                     Analisis Per Soal
                                 </a>
-                                {{-- Tombol Export ke Excel --}}
+                                {{-- ===================================================================== --}}
+                                {{-- PERBAIKAN UTAMA: Menggunakan nama route yang BENAR dari web.php     --}}
+                                {{-- ===================================================================== --}}
+                                @if($responseCount > 0)
                                 <a href="{{ route('paket-tryout.export_laporan', $paketTryout->id) }}" class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-500 active:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition ease-in-out duration-150">
                                     Export ke Excel
                                 </a>
+                                @endif
                             </div>
                         </div>
 
@@ -70,7 +72,6 @@
                                             <p class="font-bold text-lg {{ $student->skor_total >= 70 ? 'text-green-400' : 'text-red-400' }}">{{ $student->skor_total }}</p>
                                         </td>
                                         <td class="px-5 py-4 border-b border-gray-700 text-sm">
-                                            {{-- Tombol untuk membuka modal detail jawaban siswa --}}
                                             <button @click="selectedStudent = {{ $student->id }}; openDetailModal()" class="text-yellow-400 hover:text-yellow-300">Lihat Detail</button>
                                         </td>
                                     </tr>
@@ -100,29 +101,58 @@
                     <template x-if="getStudentById(selectedStudent)">
                         <div class="space-y-3">
                             <template x-for="mapel in Object.values(getStudentById(selectedStudent).hasil_per_mapel)" :key="mapel.nama_mapel">
-                                <div class="bg-gray-700 rounded-lg p-4">
-                                    <div class="flex justify-between items-center">
-                                        <p class="font-bold text-gray-200" x-text="mapel.nama_mapel"></p>
-                                        <p class="text-sm font-semibold" :class="mapel.dikerjakan ? (mapel.skor >= 70 ? 'text-green-400' : 'text-red-400') : 'text-gray-500'" x-text="mapel.dikerjakan ? `Skor: ${mapel.skor}` : 'Tidak Dikerjakan'"></p>
-                                    </div>
+                                <div class="bg-gray-700 rounded-lg p-4" x-data="{ open: true }">
+                                    <button @click="open = !open" class="w-full flex justify-between items-center text-left mb-3">
+                                        <div>
+                                            <p class="font-bold text-gray-200" x-text="mapel.nama_mapel"></p>
+                                            <p class="text-xs text-gray-400">Benar: <span x-text="mapel.total_benar"></span>/<span x-text="mapel.total_soal"></span> Soal</p>
+                                        </div>
+                                        <div class="flex items-center gap-4">
+                                            <p class="text-sm font-semibold" :class="mapel.dikerjakan ? (mapel.skor >= 70 ? 'text-green-400' : 'text-red-400') : 'text-gray-500'" x-text="mapel.dikerjakan ? `Skor: ${mapel.skor}` : 'Tidak Dikerjakan'"></p>
+                                            <svg class="w-5 h-5 text-gray-400 transition-transform" :class="{'transform rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                        </div>
+                                    </button>
                                     <template x-if="mapel.dikerjakan">
-                                        <div class="mt-2 text-sm text-gray-300">
-                                            <span>Benar: <span x-text="mapel.total_benar"></span>/<span x-text="mapel.total_soal"></span> Soal</span>
-                                            <div class="mt-4 space-y-4">
-                                                <template x-for="(jawaban, index) in mapel.detail_jawaban" :key="index">
-                                                    <div class="border-t border-gray-600 pt-3">
-                                                         <div class="flex justify-between items-start">
-                                                             <div class="prose prose-sm max-w-none text-gray-300" x-html="jawaban.pertanyaan"></div>
-                                                             <span class="ml-4 text-xs font-mono px-2 py-1 rounded" :class="jawaban.is_correct ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'" x-text="jawaban.is_correct ? 'Benar' : 'Salah'"></span>
-                                                         </div>
-                                                         <div class="mt-2 text-xs">
-                                                             <p>Bobot: <span class="font-semibold" x-text="jawaban.bobot"></span></p>
-                                                             <p>Jawabanmu: <span class="font-semibold" x-html="jawaban.jawaban_peserta || '[Tidak Dijawab]'"></span></p>
-                                                             <p>Kunci: <span class="font-semibold" x-text="jawaban.kunci_jawaban"></span></p>
-                                                         </div>
-                                                    </div>
-                                                </template>
-                                            </div>
+                                        <div x-show="open" x-collapse class="border-t border-gray-600 pt-3 space-y-4">
+                                            <template x-for="(jawaban, index) in mapel.detail_jawaban" :key="index">
+                                                <div class="border-b border-gray-600/50 pb-3 last:border-0 last:pb-0">
+                                                     <div class="flex justify-between items-start">
+                                                         <div class="prose prose-sm max-w-none text-gray-300" x-html="jawaban.pertanyaan"></div>
+                                                         <span class="ml-4 text-xs font-mono px-2 py-1 rounded" :class="jawaban.is_correct ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'" x-text="jawaban.is_correct ? 'Benar' : 'Salah'"></span>
+                                                     </div>
+                                                     <div class="mt-2 text-xs">
+                                                        <template x-if="jawaban.tipe_soal == 'pilihan_ganda' || jawaban.tipe_soal == 'pilihan_ganda_majemuk'">
+                                                            <div class="bg-gray-800/50 p-2 rounded space-y-1">
+                                                                <p>Bobot: <span class="font-semibold" x-text="jawaban.bobot"></span></p>
+                                                                <p>Jawabanmu: <span class="font-semibold text-gray-200" x-html="jawaban.jawaban_peserta || '[Tidak Dijawab]'"></span></p>
+                                                                <p>Kunci: <span class="font-semibold text-green-300" x-text="jawaban.kunci_jawaban"></span></p>
+                                                            </div>
+                                                        </template>
+                                                        <template x-if="jawaban.tipe_soal == 'pilihan_ganda_kompleks'">
+                                                            <div class="overflow-x-auto mt-2">
+                                                                <table class="min-w-full text-xs">
+                                                                    <thead class="bg-gray-600/30">
+                                                                        <tr>
+                                                                            <th class="p-2 text-left font-medium text-gray-300">Pernyataan</th>
+                                                                            <th class="p-2 text-center font-medium text-gray-300">Jawaban Siswa</th>
+                                                                            <th class="p-2 text-center font-medium text-gray-300">Kunci Jawaban</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody class="divide-y divide-gray-700">
+                                                                        <template x-for="matriks in jawaban.detail_matriks" :key="matriks.pernyataan">
+                                                                            <tr :class="!matriks.is_row_correct ? 'bg-red-900/30' : ''">
+                                                                                <td class="p-2 text-gray-300" x-html="matriks.pernyataan"></td>
+                                                                                <td class="p-2 text-center text-gray-200" x-text="matriks.jawaban_siswa_teks"></td>
+                                                                                <td class="p-2 text-center text-green-300 font-semibold" x-text="matriks.kunci_jawaban_teks"></td>
+                                                                            </tr>
+                                                                        </template>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </template>
+                                                     </div>
+                                                </div>
+                                            </template>
                                         </div>
                                     </template>
                                 </div>
@@ -245,7 +275,7 @@
                     .then(res => res.json())
                     .then(data => {
                         this.saveStatus = { success: true, message: data.message };
-                        setTimeout(() => window.location.reload(), 1500); // Reload halaman untuk melihat skor terbaru
+                        setTimeout(() => window.location.reload(), 1500);
                     })
                     .catch(() => {
                         this.saveStatus = { success: false, message: 'Terjadi kesalahan.' };

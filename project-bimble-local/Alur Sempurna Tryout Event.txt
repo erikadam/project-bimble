@@ -1,0 +1,69 @@
+Alur Sempurna Tryout Event
+Tryout Event adalah ujian yang diadakan secara serentak pada waktu yang telah ditentukan. Waktu pengerjaan bersifat total, yang kemudian dibagi per mata pelajaran.
+
+Memilih Event:
+
+Alur dimulai dari rute /ujian-siswa/pilih-event/{jenjang?}.
+
+Fungsi SiswaController@pilihEvent akan mengambil data dari tabel paket_tryout dengan tipe_paket 'event'.
+
+Data ini dikirim ke tampilan pilih-event.blade.php untuk menampilkan daftar event yang akan datang.
+
+Halaman Menunggu (Menunggu):
+
+Saat siswa mengklik event, middleware check.event.status akan mengecek apakah waktu_mulai dari paket_tryout sudah lewat.
+
+Jika belum, siswa akan diarahkan ke tampilan siswa/menunggu.blade.php, yang menampilkan hitungan mundur hingga ujian dimulai.
+
+Memilih Mata Pelajaran:
+
+Setelah ujian dimulai, siswa diarahkan ke SiswaController@pilihMapel.
+
+Tampilan siswa/pilih-mapel.blade.php akan ditampilkan, di mana siswa dapat memilih mata pelajaran yang ingin dikerjakan. Pilihan ini dibatasi oleh min_wajib dan max_opsional yang disimpan di tabel paket_tryout.
+
+Pilihan siswa diproses oleh SiswaController@mulaiPengerjaan dan disimpan ke dalam session siswa.
+
+Pengerjaan Soal (Waktu Terbatas):
+
+Siswa diarahkan ke SiswaController@showSoal untuk mengerjakan mata pelajaran pertama.
+
+Tampilan siswa/soal-mapel.blade.php menampilkan soal. Waktu pengerjaan untuk mata pelajaran ini dihitung mundur berdasarkan durasi yang telah ditentukan di tabel paket_mapel.
+
+Jawaban disimpan saat siswa berpindah mata pelajaran atau waktu habis, melalui SiswaController@simpanJawaban. Jawaban ini dicatat di tabel jawaban_pesertas.
+
+Sistem akan secara otomatis mengarahkan ke mata pelajaran selanjutnya dalam urutan yang telah ditentukan.
+
+Alur Sempurna Tryout Flexible
+Tryout Flexible adalah ujian yang dapat dikerjakan kapan saja oleh siswa, dengan waktu pengerjaan yang terpisah per mata pelajaran.
+
+Memilih Paket:
+
+Alur dimulai dari rute /ujian-siswa/pilih-paket/{jenjang?}.
+
+Fungsi SiswaController@pilihPaket akan mengambil data dari tabel paket_tryout dengan tipe_paket 'tryout'.
+
+Data ini dikirim ke tampilan pilih-paket.blade.php untuk menampilkan daftar paket yang tersedia.
+
+Halaman Mulai:
+
+Siswa mengklik paket yang dipilih, yang mengarahkan mereka ke SiswaController@mulai.
+
+Tampilan siswa/mulai.blade.php ditampilkan, di mana siswa dapat mengisi data diri dasar sebelum memulai.
+
+Memilih Mata Pelajaran:
+
+Siswa diarahkan ke SiswaController@pilihMapel (alur yang sama dengan Tryout Event).
+
+Tampilan siswa/pilih-mapel.blade.php akan ditampilkan. Siswa dapat memilih mata pelajaran berdasarkan min_wajib dan max_opsional.
+
+Pilihan siswa diproses oleh SiswaController@mulaiPengerjaan dan disimpan ke dalam session.
+
+Pengerjaan Soal (Waktu Fleksibel):
+
+Siswa diarahkan ke SiswaController@showSoalFleksibel.
+
+Tampilan siswa/soal-mapel-fleksibel.blade.php menampilkan soal. Timer di sini dimulai saat siswa memulai pengerjaan setiap mata pelajaran, bukan berdasarkan jadwal serentak.
+
+Jawaban disimpan melalui SiswaController@simpanJawabanFleksibel ke dalam tabel jawaban_pesertas.
+
+Siswa memiliki kontrol penuh untuk berpindah antar mata pelajaran dan dapat keluar masuk sesi ujian.

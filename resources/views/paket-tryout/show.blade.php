@@ -69,6 +69,22 @@
                         <a href="{{ route('paket-tryout.edit', $paketTryout->id) }}" class="inline-flex items-center px-4 py-2 bg-yellow-500 border border-transparent rounded-md font-semibold text-xs text-gray-900 uppercase tracking-widest hover:bg-yellow-400">
                             Edit Paket
                         </a>
+                        <form action="{{ route('paket-tryout.toggle_status', $paketTryout->id) }}" method="POST">
+                    @csrf
+                    @method('PATCH')
+
+                    @if ($paketTryout->status == 'published')
+                        {{-- Tombol untuk Unpublish (Arsipkan) --}}
+                        <button type="submit" class="inline-flex items-center px-4 py-2 bg-gray-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-400">
+                            Arsipkan
+                        </button>
+                    @else
+                        {{-- Tombol untuk Publish --}}
+                        <button type="submit" class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-500">
+                            Publikasikan
+                        </button>
+                    @endif
+                </form>
                     </div>
                 </div>
             </div>

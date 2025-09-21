@@ -1,5 +1,6 @@
 <x-guest-layout>
-    <div class="py-12 bg-gray-900" x-data="ujianPageData({{ $waktuSelesaiTimestamp }})">
+    {{-- Mengirimkan sisa waktu (dalam detik) ke Alpine.js --}}
+    <div class="py-12 bg-gray-900" x-data="ujianPageData({{ $sisa_waktu }})">
 
         {{-- Timer Sticky --}}
         <div class="sticky top-0 z-50 bg-gray-900 shadow-lg">
@@ -11,7 +12,8 @@
                     <div class="flex items-center">
                         <span x-show="isSaving" class="text-sm text-gray-400 mr-4 italic" style="display: none;">Menyimpan...</span>
                         <span x-show="!isSaving && justSaved" class="text-sm text-green-400 mr-4" style="display: none;">Tersimpan!</span>
-                        <div id="timer" class="text-xl font-bold text-yellow-400" x-text="timerText"></div>
+                        {{-- Elemen timer ini sekarang dikendalikan oleh properti 'displayText' dari Alpine.js --}}
+                        <div id="timer" class="text-xl font-bold text-yellow-400" x-text="displayText"></div>
                     </div>
                 </div>
             </div>
@@ -143,42 +145,6 @@
                             </button>
                         </div>
                     </form>
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.countdown/2.2.0/jquery.countdown.min.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Ambil elemen form
-        const form = document.getElementById('jawaban-form');
-
-        // Ambil timestamp dari PHP
-        const waktuSelesaiTimestamp = {{ $waktuSelesaiTimestamp }};
-        const serverNowTimestamp = {{ now()->timestamp }};
-
-        // Buat objek tanggal berdasarkan selisih waktu dari server untuk akurasi
-        const waktuSelesaiClient = new Date();
-        waktuSelesaiClient.setSeconds(waktuSelesaiClient.getSeconds() + (waktuSelesaiTimestamp - serverNowTimestamp));
-
-        // Inisialisasi countdown pada elemen #timer
-        $('#timer').countdown(waktuSelesaiClient, function(event) {
-            $(this).html(event.strftime('%H:%M:%S'));
-        })
-        .on('finish.countdown', function() {
-            // ===============================================================
-            // INI ADALAH LOGIKA PERBAIKAN UTAMA
-            // ===============================================================
-            // Tampilkan pesan bahwa waktu habis dan jawaban sedang disimpan
-            $(this).html('Waktu Habis. Menyimpan...');
-
-            // Nonaktifkan semua input agar tidak bisa diubah saat proses simpan
-            form.querySelectorAll('input, button').forEach(el => el.disabled = true);
-
-            // Secara otomatis submit form untuk menyimpan jawaban terakhir
-            form.submit();
-        });
-
-        // (kode Alpine.js Anda untuk modal konfirmasi tidak perlu diubah)
-    });
-</script>
                 </div>
             </div>
         </div>
@@ -188,7 +154,7 @@
             <div @click.outside="showConfirmModal = false" class="bg-gray-800 text-gray-200 rounded-lg shadow-xl w-full max-w-md p-6">
                 <h3 class="text-lg font-bold text-white">Konfirmasi</h3>
                 <p class="mt-2 text-sm text-gray-400">Anda yakin ingin menyelesaikan sesi ini?</p>
-                <p class="mt-4 text-sm text-gray-300">Sisa waktu Anda: <span class="font-bold text-yellow-400" x-text="timerText.replace('Waktu: ', '')"></span></p>
+                <p class="mt-4 text-sm text-gray-300">Sisa waktu Anda: <span class="font-bold text-yellow-400" x-text="displayText"></span></p>
                 <div class="mt-6 flex justify-end space-x-2">
                     <button type="button" @click="showConfirmModal = false" class="px-4 py-2 bg-gray-700 text-gray-300 rounded-md hover:bg-gray-600">Batal</button>
                     <button type="submit" form="ujian-form" class="px-4 py-2 bg-yellow-400 text-yellow-900 rounded-md hover:bg-yellow-500">Yakin & Lanjutkan</button>
@@ -198,87 +164,77 @@
     </div>
 
     <script>
-        function ujianPageData(waktuSelesaiTimestamp) {
+        // Fungsi Alpine.js yang sudah diperbaiki dan disatukan
+        function ujianPageData(sisaDetikAwal) {
             return {
-                // properti
+                // properti yang sudah ada dipertahankan
                 showConfirmModal: false,
-                timerText: 'Memuat...',
                 isSaving: false,
                 justSaved: false,
 
+                // properti baru untuk timer yang stabil
+                sisaWaktu: sisaDetikAwal,
+                displayText: 'Memuat...', // Teks awal
+
                 // method init untuk memulai timer
                 init() {
-                    const form = document.getElementById('ujian-form');
-                    const endTime = waktuSelesaiTimestamp * 1000;
-
-                    if (isNaN(endTime) || endTime === 0) {
-                        this.timerText = 'Error Waktu';
-                        console.error("Timestamp tidak valid.");
-                        return;
-                    }
-
-                    // Panggil updateTimer sekali di awal agar tidak ada jeda
-                    this.updateTimer(endTime);
+                    this.updateDisplay(); // Panggil sekali agar tampilan tidak kosong saat awal
 
                     const countdown = setInterval(() => {
-                        this.updateTimer(endTime);
-                    }, 1000);
+                        if (this.sisaWaktu <= 0) {
+                            clearInterval(countdown);
+                            this.sisaWaktu = 0;
+                            this.displayText = 'Waktu Habis!';
 
-                    // Pastikan interval berhenti jika elemen Alpine dihapus
-                    this.$watch('showConfirmModal', () => {
-                        if (!this.showConfirmModal) {
-                           // Logika tambahan jika diperlukan saat modal ditutup
+                            const form = document.getElementById('ujian-form');
+                            if (form && !form.dataset.submitted) {
+                                form.dataset.submitted = 'true';
+                                alert('Waktu habis! Jawaban Anda akan disubmit secara otomatis.');
+                                form.submit();
+                            }
+                        } else {
+                            this.sisaWaktu--;
                         }
-                    });
+                        this.updateDisplay();
+                    }, 1000);
                 },
 
                 // method untuk memperbarui teks timer
-                updateTimer(endTime) {
-                    const form = document.getElementById('ujian-form');
-                    const now = new Date().getTime();
-                    const distance = endTime - now;
+                updateDisplay() {
+                    if (this.sisaWaktu < 0) return;
 
-                    if (distance < 0) {
-                        this.timerText = 'Waktu Habis!';
-                        // Hentikan interval jika waktu habis
-                        // (Meskipun clearInterval tidak bisa dipanggil dari sini,
-                        // logika di dalam init akan menanganinya)
-                        if (form && !form.dataset.submitted) {
-                            form.dataset.submitted = 'true';
-                            form.submit();
-                        }
-                        return;
-                    }
+                    const hours = Math.floor(this.sisaWaktu / 3600);
+                    const minutes = Math.floor((this.sisaWaktu % 3600) / 60);
+                    const seconds = this.sisaWaktu % 60;
 
-                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-                    this.timerText = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    this.displayText = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
                 },
 
-                // method untuk menangani simpan otomatis
+                // method untuk menangani simpan otomatis (kode asli Anda)
                 handleAutoSave(element, soalId, pernyataanId = null) {
                     let jawaban;
-                    const soalItem = document.querySelector(`div[data-soal-id="${soalId}"]`);
+                    const soalItem = element.closest('div[data-soal-id]');
+                    const tipeSoalInput = soalItem.querySelector('input');
 
-                    if (soalItem.querySelector('input[type="checkbox"]')) {
+                    if (tipeSoalInput.type === 'checkbox') {
                         const checkedCheckboxes = soalItem.querySelectorAll(`input[name="jawaban_soal[${soalId}][]"]:checked`);
                         jawaban = Array.from(checkedCheckboxes).map(cb => cb.value);
-                    } else if (soalItem.querySelector('input[name^="jawaban_soal[' + soalId + ']["]')) {
-                        // Logika untuk Pilihan Ganda Kompleks (Matriks)
-                        const radioButtons = soalItem.querySelectorAll(`input[name="jawaban_soal[${soalId}][${pernyataanId}]"]:checked`);
+                    } else if (tipeSoalInput.name.includes(`[${pernyataanId}]`)) {
+                        const allRadiosInSoal = soalItem.querySelectorAll('input[type="radio"]');
                         jawaban = {};
-                        if (radioButtons.length > 0) {
-                            jawaban[pernyataanId] = radioButtons[0].value;
-                        }
+                        allRadiosInSoal.forEach(radio => {
+                            const pIdMatch = radio.name.match(/\[(\d+)\]$/);
+                            if (pIdMatch && radio.checked) {
+                                jawaban[pIdMatch[1]] = radio.value;
+                            }
+                        });
                     } else {
                         jawaban = element.value;
                     }
                     this.doAutoSave(soalId, jawaban);
                 },
 
-                // method untuk mengirim data auto-save ke server
+                // method untuk mengirim data auto-save ke server (kode asli Anda)
                 doAutoSave(soalId, jawaban) {
                     this.isSaving = true;
                     this.justSaved = false;
@@ -292,11 +248,14 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
                         },
                         body: JSON.stringify(payload)
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.json();
+                    })
                     .then(data => {
                         this.isSaving = false;
                         if(data.success) {

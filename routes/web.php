@@ -126,7 +126,7 @@ Route::prefix('ujian-siswa')->name('siswa.')->group(function () {
         Route::get('/review', [SiswaController::class, 'review'])->name('review');
         Route::get('/fleksibel/soal/{mapelId}', [SiswaController::class, 'showSoalFleksibel'])->name('fleksibel.show_soal');
         Route::post('/fleksibel/jawab-mapel/{mapelId}', [SiswaController::class, 'simpanJawabanFleksibel'])->name('fleksibel.simpan_jawaban');
-
+        Route::get('/fleksibel/hasil', [SiswaController::class, 'hasilFleksibel'])->name('fleksibel.hasil');
     });
 });
 Route::prefix('ulangan/{ulangan}/laporan')->name('ulangan.laporan.')->group(function () {

@@ -153,12 +153,25 @@ class PaketTryoutController extends Controller
 
         return view('paket-tryout.analysis', compact('paketTryout', 'analysisDataByMapel', 'totalResponses'));
     }
-    public function create(Request $request)
-    {
-        $jenjang = $request->get('jenjang');
-        $mataPelajaran = MataPelajaran::where('jenjang_pendidikan', $jenjang)->with('soal')->get();
-        return view('paket-tryout.create', compact('mataPelajaran', 'jenjang'));
+   public function create(Request $request)
+{
+    // Mengambil jenjang dari request, sama seperti kode asli Anda
+    $jenjang = $request->get('jenjang');
+
+    // Memulai query ke model MataPelajaran
+    $mataPelajaranQuery = MataPelajaran::query();
+
+    // Jika ada jenjang, filter berdasarkan jenjang tersebut
+    if ($jenjang) {
+        $mataPelajaranQuery->where('jenjang_pendidikan', $jenjang);
     }
+
+    // Tambahkan pengurutan: mata pelajaran wajib (is_wajib = 1) akan muncul di atas
+    $mataPelajaran = $mataPelajaranQuery->orderBy('is_wajib', 'desc')->with('soal')->get();
+
+    // Mengirim data yang benar-benar dibutuhkan oleh view Anda
+    return view('paket-tryout.create', compact('mataPelajaran', 'jenjang'));
+}
 
 
     public function laporanIndex(Request $request)
@@ -378,13 +391,34 @@ class PaketTryoutController extends Controller
         return view('paket-tryout.show', compact('paketTryout', 'totalDurasi', 'soalPerMapel'));
     }
     public function edit(PaketTryout $paketTryout)
-    {
-        $paketTryout->load(['mataPelajaran', 'soalPilihan']);
-        $jenjang = $paketTryout->mataPelajaran->first()->jenjang_pendidikan;
-        $mataPelajaranOptions = MataPelajaran::where('jenjang_pendidikan', $jenjang)->with('soal')->get();
-        $selectedSoalIds = $paketTryout->soalPilihan->pluck('id')->toArray();
-        return view('paket-tryout.edit', compact('paketTryout', 'mataPelajaranOptions', 'jenjang', 'selectedSoalIds'));
-    }
+{
+    // Memuat relasi yang sudah ada, sama seperti kode asli Anda
+    $paketTryout->load(['mataPelajaran', 'soalPilihan']);
+
+    // Mengambil jenjang dari mata pelajaran pertama, sama seperti kode asli Anda
+    $jenjang = $paketTryout->mataPelajaran->first()->jenjang_pendidikan;
+
+    // Mengambil semua opsi mata pelajaran berdasarkan jenjang, sama seperti kode asli Anda
+    $mataPelajaranOptions = MataPelajaran::where('jenjang_pendidikan', $jenjang)->with('soal')->get();
+
+    // Mengambil ID soal yang sudah dipilih, sama seperti kode asli Anda
+    $selectedSoalIds = $paketTryout->soalPilihan->pluck('id')->toArray();
+
+    // ===================================================================
+    // PERBAIKAN UTAMA: Tambahkan pengurutan pada daftar mata pelajaran yang sudah dipilih
+    // ===================================================================
+    // Kita urutkan relasi mataPelajaran yang sudah dimuat sebelumnya
+    $paketTryout->mataPelajaran = $paketTryout->mataPelajaran->sortByDesc('pivot.is_wajib');
+    // ===================================================================
+
+    // Mengirim semua variabel yang dibutuhkan oleh view Anda, tidak ada yang hilang
+    return view('paket-tryout.edit', compact(
+        'paketTryout',
+        'mataPelajaranOptions',
+        'jenjang',
+        'selectedSoalIds'
+    ));
+}
 
     public function update(Request $request, PaketTryout $paketTryout)
 {

@@ -17,6 +17,9 @@
                             <p class="text-sm text-gray-400">Status: <span class="font-bold">{{ Str::title($soal->status) }}</span></p>
                         </div>
                         <div class="flex space-x-2">
+                            <a href="{{ route('mata-pelajaran.soal.index', ['mata_pelajaran' => $soal->mataPelajaran->id]) }}" class="inline-flex items-center px-4 py-2 bg-gray-700 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition ease-in-out duration-150">
+                    &larr; Kembali ke Daftar Soal
+                </a>
                             <a href="{{ route('soal.edit', $soal->id) }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Edit</a>
                             <form action="{{ route('soal.destroy', $soal->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus soal ini?');">
                                 @csrf
