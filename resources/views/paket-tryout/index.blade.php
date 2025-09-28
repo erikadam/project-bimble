@@ -58,7 +58,7 @@
                                         @endif
                                     </td>
                                     <td class="px-5 py-4 border-b border-gray-700 text-sm">
-                                        @if ($paket->tipe_paket == 'event')
+                                        @if (in_array($paket->tipe_paket, ['event', 'pacu']))
                                             <div x-data="countdownTimer({{ $paket->waktu_mulai_timestamp ?? 'null' }}, {{ $paket->waktu_selesai_timestamp ?? 'null' }}, {{ $paket->server_now_timestamp ?? 'null' }})" x-init="init()" class="relative" @mouseenter="tooltip = true" @mouseleave="tooltip = false">
                                                 <p class="text-gray-300">{{ \Carbon\Carbon::parse($paket->waktu_mulai)->format('d M Y, H:i') }}</p>
                                                 <div x-show="tooltip" x-transition class="absolute z-10 -top-12 left-0 p-2 text-xs text-white bg-gray-800 rounded-md shadow-lg whitespace-nowrap">

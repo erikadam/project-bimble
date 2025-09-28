@@ -4,37 +4,44 @@
 
 @section('custom-styles')
 <style>
+.header {
+    padding-top: 8rem !important;
+    padding-bottom: 0 !important; /* hapus padding lama yang bikin jarak bawah */
+    margin-bottom: 0 !important;
+    position: relative;
+    background-color: #1a1a1a;
+    text-align: center;
+}
 
+/* pastikan outer-container tidak absolute */
+.header .outer-container {
+    position: relative !important;
+    bottom: auto !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+}
 
-    /* [STYLE DESKTOP] Mengatur tinggi dan tampilan slide */
-    .header .swiper-slide {
-        height: 500px;
-        background-color: #333;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-    }
+/* SLIDER FIX DIMENSI */
+.header .slider-container {
+    width: 1110px !important;  /* fix lebar desktop */
+    height: 740px !important;  /* fix tinggi sesuai proporsi contoh */
+    margin: 0 auto;            /* center */
+    overflow: hidden;
+    border-radius: 0.75rem;
+    position: relative;
+}
 
-    .header .slider-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center;
-    }
+/* isi gambar */
+.header .slider-container img,
+.header .swiper-container img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
+    display: block;
+}
 
-    /* [STYLE DESKTOP] Menyesuaikan warna tombol navigasi Swiper */
-    .header .swiper-button-next,
-    .header .swiper-button-prev {
-        color: #ffbf00;
-    }
-
-    .header .text-container {
-        padding-bottom: 5rem;
-    }
-
-    /* [PENYESUAIAN MOBILE] - Aturan ini hanya berlaku untuk layar kecil (di bawah 767px) */
-    @media (max-width: 767px) {
+/* RESPONSIVE */
+@media (max-width: 767px) {
         .header {
             padding-top: 4rem;
             padding-bottom: 15rem; /* Mengurangi padding vertikal di header */
@@ -99,8 +106,6 @@
                         </div>
                     @endforelse
                 </div>
-                <div class="swiper-button-next"></div>
-                <div class="swiper-button-prev"></div>
             </div>
         </div>
     </div>
@@ -213,7 +218,7 @@
         </div>
     </div>
 </div>
-{{-- Bagian "About Us" Baru --}}
+{{-- Bagia1 Us" Baru --}}
 @if($aboutUs)
 <div id="about" class="form-3">
     <div class="container">

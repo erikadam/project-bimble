@@ -2,13 +2,8 @@
     <div class="bg-gray-900 min-h-screen">
         <div class="container mx-auto px-4 py-12">
             <div class="text-center mb-10 relative">
-                {{-- TOMBOL KEMBALI --}}
-                <a href="{{ route('siswa.pilih_jenjang') }}" class="absolute left-0 top-1/2 -translate-y-1/2 flex items-center text-sm font-semibold text-gray-400 hover:text-white transition-colors">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                    Kembali Pilih Jenjang
-                </a>
-                <h1 class="text-4xl font-extrabold text-white">Event Tryout Terjadwal</h1>
-                <p class="mt-2 text-lg text-gray-400">Pilih event yang ingin Anda ikuti.</p>
+                <h1 class="text-4xl font-extrabold text-white">Event Tryout Terjadwal <span class="text-yellow-400">{{ $jenjang }}</span></h1>
+                <p class="mt-2 text-lg text-gray-400">Pilih event yang ingin Anda ikut.</p>
             </div>
 
             @if(session('error'))
@@ -157,6 +152,11 @@
                         <p class="text-gray-400 text-lg">Tidak ada event yang tersedia untuk jenjang ini.</p>
                     </div>
                 @endforelse
+            </div>
+            <div class="mt-12 text-center">
+                <a href="{{ route('siswa.pilih_jenjang') }}" class="text-gray-300 hover:text-yellow-400 transition">
+                    &larr; Kembali ke Pilih Jenis Tryout
+                </a>
             </div>
         </div>
     </div>

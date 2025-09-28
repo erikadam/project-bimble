@@ -3,85 +3,104 @@
 namespace App\Http\Controllers;
 
 use App\Models\AboutUs;
+use App\Models\AboutUsImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class AboutUsController extends Controller
 {
+    /**
+     * Metode ini akan menangani rute index dan mengarahkan ke halaman yang benar.
+     * Ini untuk memperbaiki error "undefined method index()".
+     */
     public function index()
     {
-        // Kita hanya akan mengizinkan satu entri "About Us" untuk saat ini.
-        // Jika belum ada, arahkan untuk membuat. Jika sudah ada, arahkan untuk mengedit.
         $aboutUs = AboutUs::first();
         if ($aboutUs) {
-            return view('about-us.edit', compact('aboutUs'));
+            // Jika data "About Us" sudah ada, arahkan ke halaman edit.
+            return redirect()->route('about-us.edit', $aboutUs);
         }
-        return view('about-us.create');
+        // Jika belum ada, arahkan ke halaman untuk membuat baru.
+        return redirect()->route('about-us.create');
     }
 
+    /**
+     * Menampilkan form untuk membuat data "About Us" baru.
+     */
     public function create()
     {
-        // Jika sudah ada data, jangan biarkan membuat lagi.
-        if (AboutUs::count() > 0) {
-            return redirect()->route('about-us.index')->with('error', 'Halaman "About Us" sudah ada, Anda hanya bisa mengeditnya.');
+        $aboutUs = AboutUs::first();
+        if ($aboutUs) {
+            // Mencegah pembuatan data baru jika sudah ada.
+            return redirect()->route('about-us.edit', $aboutUs)->with('info', 'Halaman "About Us" sudah ada, Anda hanya bisa mengeditnya.');
         }
         return view('about-us.create');
     }
 
+    /**
+     * Menyimpan data "About Us" yang baru.
+     */
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'content' => 'required|string',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048'
         ]);
 
-        $imagePath = $request->file('image')->store('about-us-images', 'public');
-
-        AboutUs::create([
-            'title' => $request->title,
-            'description' => $request->description,
-            'image_path' => $imagePath,
+        $aboutUs = AboutUs::create([
+            'title' => $validated['title'],
+            'content' => $validated['content'],
         ]);
 
-        return redirect()->route('about-us.index')->with('success', 'Informasi "About Us" berhasil disimpan.');
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $path = $file->store('about-us-sliders', 'public');
+                $aboutUs->images()->create(['image_path' => $path]);
+            }
+        }
+
+        return redirect()->route('dashboard')->with('success', 'Informasi "About Us" berhasil dibuat.');
     }
 
     public function edit(AboutUs $aboutUs)
     {
+        $aboutUs->load('images');
         return view('about-us.edit', compact('aboutUs'));
     }
 
     public function update(Request $request, AboutUs $aboutUs)
-{
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'delete_images' => 'nullable|array',
+            'delete_images.*' => 'exists:about_us_images,id'
+        ]);
 
-    // DIUBAH: Gunakan request() helper untuk validasi yang lebih ringkas.
-    $validatedData = $request->validate([
-        'title' => 'required|string|max:255',
-        'description' => 'required|string',
-        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-    ]);
+        $aboutUs->update([
+            'title' => $validated['title'],
+            'content' => $validated['content'],
+        ]);
 
-    // DITAMBAH: Ambil path gambar yang sudah ada sebagai default.
-    $imagePath = $aboutUs->image_path;
-
-    // DITAMBAH: Pengecekan apakah ada file baru yang diunggah.
-    if ($request->hasFile('image')) {
-        // Hapus gambar lama jika ada
-        if ($aboutUs->image_path) {
-            Storage::disk('public')->delete($aboutUs->image_path);
+        if ($request->has('delete_images')) {
+            foreach ($validated['delete_images'] as $imageId) {
+                $image = AboutUsImage::find($imageId);
+                if ($image) {
+                    Storage::disk('public')->delete($image->image_path);
+                    $image->delete();
+                }
+            }
         }
-        // Simpan gambar baru
-        $imagePath = $request->file('image')->store('about-us-images', 'public');
+
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $path = $file->store('about-us-sliders', 'public');
+                $aboutUs->images()->create(['image_path' => $path]);
+            }
+        }
+
+        return redirect()->route('dashboard')->with('success', 'Informasi "About Us" berhasil diperbarui.');
     }
-
-    // DIUBAH: Gunakan data yang telah divalidasi dan path gambar yang diperbarui
-    $aboutUs->update([
-        'title' => $validatedData['title'],
-        'description' => $validatedData['description'],
-        'image_path' => $imagePath,
-    ]);
-
-    return redirect()->route('about-us.index')->with('success', 'Informasi "About Us" berhasil diperbarui.');
-}
 }

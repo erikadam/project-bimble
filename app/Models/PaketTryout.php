@@ -22,6 +22,7 @@ class PaketTryout extends Model
     'status',
     'durasi_menit',
     'waktu_mulai',
+    'durasi_istirahat_wajib',
 ];
 
     public function mataPelajaran()

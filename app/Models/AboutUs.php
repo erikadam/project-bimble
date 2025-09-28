@@ -13,7 +13,11 @@ class AboutUs extends Model
 
     protected $fillable = [
         'title',
-        'description',
+        'content',
         'image_path',
     ];
+    public function images()
+    {
+        return $this->hasMany(AboutUsImage::class);
+    }
 }

@@ -32,7 +32,7 @@ Route::prefix('ulangan-siswa')->name('siswa.ulangan.')->group(function () {
 // Route dasbor yang dibuat oleh Breeze
 Route::get('/dashboard', function () {
 
-    $upcomingEvents = PaketTryout::where('tipe_paket', 'event')
+    $upcomingEvents = PaketTryout::whereIn('tipe_paket', ['event', 'pacu'])
         ->where('status', 'published')
         ->where('waktu_mulai', '>', now())
         ->orderBy('waktu_mulai', 'asc')
@@ -53,7 +53,8 @@ Route::get('/dashboard', function () {
 // Grup route yang hanya bisa diakses setelah login
 Route::middleware('auth')->group(function () {
 
-    Route::resource('about-us', \App\Http\Controllers\AboutUsController::class);
+        Route::resource('about-us', \App\Http\Controllers\AboutUsController::class)
+         ->parameters(['about-us' => 'about_us']);
     Route::post('soal/upload-image', [App\Http\Controllers\SoalController::class, 'uploadImage'])->name('soal.uploadImage');
     Route::resource('company-goals', CompanyGoalController::class);
     Route::resource('testimonials', TestimonialController::class);
@@ -107,6 +108,8 @@ Route::post('ulangan/{ulangan}/remove-soal', [\App\Http\Controllers\UlanganContr
 Route::post('/ulangan-siswa/autosave/{ulangan}', [\App\Http\Controllers\SiswaController::class, 'autoSaveJawabanUlangan'])->name('siswa.ulangan.autosave');
 // Grup rute untuk siswa (tanpa autentikasi)
 Route::prefix('ujian-siswa')->name('siswa.')->group(function () {
+
+    Route::get('/pilih-pacu/{jenjang?}', [SiswaController::class, 'pilihPacu'])->name('pilih_pacu');
     Route::get('/pilih-jenjang', [SiswaController::class, 'pilihJenjang'])->name('pilih_jenjang');
     Route::get('/akses-ulangan', [SiswaController::class, 'aksesUlangan'])->name('akses_ulangan');
     Route::get('/pilih-ulangan/{jenjang?}', [SiswaController::class, 'pilihUlangan'])->name('pilih_ulangan');
@@ -127,6 +130,13 @@ Route::prefix('ujian-siswa')->name('siswa.')->group(function () {
         Route::get('/fleksibel/soal/{mapelId}', [SiswaController::class, 'showSoalFleksibel'])->name('fleksibel.show_soal');
         Route::post('/fleksibel/jawab-mapel/{mapelId}', [SiswaController::class, 'simpanJawabanFleksibel'])->name('fleksibel.simpan_jawaban');
         Route::get('/fleksibel/hasil', [SiswaController::class, 'hasilFleksibel'])->name('fleksibel.hasil');
+        Route::prefix('pacu')->name('pacu.')->group(function () {
+        Route::get('/soal/{mapelId}', [SiswaController::class, 'showSoalPacu'])->name('show_soal');
+        Route::post('/simpan/{mapelId}', [SiswaController::class, 'simpanJawabanPacu'])->name('simpan_jawaban');
+        Route::post('/autosave/{mapelId}', [SiswaController::class, 'autosaveJawabanPacu'])->name('autosave');
+        Route::get('/istirahat', [SiswaController::class, 'showIstirahatPacu'])->name('show_istirahat');
+        Route::get('/hasil', [SiswaController::class, 'hasilPacu'])->name('hasil');
+    });
     });
 });
 Route::prefix('ulangan/{ulangan}/laporan')->name('ulangan.laporan.')->group(function () {

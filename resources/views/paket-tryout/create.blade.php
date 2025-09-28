@@ -46,13 +46,21 @@
                                 <select id="tipe_paket" name="tipe_paket" x-model="tipePaket" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 focus:border-yellow-500 focus:ring-yellow-500 rounded-md shadow-sm">
                                     <option value="tryout">Tryout Fleksibel</option>
                                     <option value="event">Tryout Event (Terjadwal)</option>
+                                    <option value="pacu">Tryout Pacu</option>
                                 </select>
                             </div>
-                            <div x-show="tipePaket === 'event'" x-transition>
-                                <x-input-label for="waktu_mulai" :value="__('Waktu Mulai Event')" class="text-gray-300"/>
-                                <x-text-input id="waktu_mulai" name="waktu_mulai" type="datetime-local" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200" :value="old('waktu_mulai')" />
-                                <p class="text-xs text-gray-400 mt-1">Siswa hanya bisa memulai ujian setelah waktu ini.</p>
-                            </div>
+                            <div x-show="tipePaket === 'event' || tipePaket === 'pacu'" x-transition style="display: none;">
+                            <x-input-label for="waktu_mulai" :value="__('Waktu Mulai Ujian')" class="text-gray-300"/>
+                            <x-text-input id="waktu_mulai" name="waktu_mulai" type="datetime-local" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200" :value="old('waktu_mulai')" />
+                            <p class="text-xs text-gray-400 mt-1">Siswa hanya bisa memulai ujian setelah waktu ini.</p>
+                        </div>
+
+
+                    {{--  <div x-show="tipePaket === 'pacu'" style="display: none;">
+                                <x-input-label for="durasi_istirahat_wajib" :value="__('Durasi Istirahat (setelah mapel wajib)')" class="text-gray-300"/>
+                                <x-text-input id="durasi_istirahat_wajib" name="durasi_istirahat_wajib" type="number" min="0" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200" :value="old('durasi_istirahat_wajib', $paketTryout->durasi_istirahat_wajib ?? 0)" />
+                                <p class="text-xs text-gray-400 mt-1">Isi durasi dalam menit. Istirahat akan muncul setelah siswa menyelesaikan semua mapel wajib yang dipilihnya. Kosongkan jika tidak ada istirahat.</p>
+                            </div>--}}
                              <div x-show="tipePaket !== 'ulangan'" x-transition class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <x-input-label for="min_wajib" :value="__('Minimal Mata Pelajaran Wajib')" class="text-gray-300"/>

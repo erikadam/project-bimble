@@ -19,7 +19,7 @@
                                 <span class="font-mono bg-gray-700 px-3 py-1 text-sm rounded-full text-gray-300">{{ $paketTryout->kode_soal }}</span>
                             </div>
                         </div>
-                        @if ($paketTryout->tipe_paket == 'event')
+                        @if (in_array($paketTryout->tipe_paket, ['event', 'pacu']) && $paketTryout->waktu_mulai)
                             <div x-data="countdownTimer({{ $paketTryout->waktu_mulai_timestamp ?? 'null' }}, {{ $paketTryout->waktu_selesai_timestamp ?? 'null' }}, {{ $paketTryout->server_now_timestamp ?? 'null' }})" x-init="init()" class="text-right">
                                 <p class="font-semibold text-gray-300">{{ \Carbon\Carbon::parse($paketTryout->waktu_mulai)->isoFormat('dddd, D MMMM YYYY, HH:mm') }}</p>
                                 <p class="px-2 py-1 text-xs font-semibold leading-tight rounded-full inline-block mt-1" :class="{'text-green-200 bg-green-800': status === 'Sedang Berlangsung', 'text-blue-200 bg-blue-800': status === 'Akan Datang', 'text-gray-200 bg-gray-700': status === 'Telah Selesai'}" x-text="status"></p>

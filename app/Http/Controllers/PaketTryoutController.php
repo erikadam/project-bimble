@@ -21,39 +21,40 @@ class PaketTryoutController extends Controller
      * Display a listing of the resource.
      */
     public function index(Request $request)
-    {
-        $jenjang = $request->get('jenjang');
-        $paketTryouts = PaketTryout::when($jenjang, function ($query, $jenjang) {
-            return $query->whereHas('mataPelajaran', function($query) use ($jenjang) {
-                $query->where('jenjang_pendidikan', $jenjang);
-            });
-        })
-
-        ->with('mataPelajaran')
-        ->latest()
-        ->get();
-        $paketTryouts->each(function ($paket) {
-            if ($paket->tipe_paket == 'event' && $paket->waktu_mulai) {
-                $now = Carbon::now();
-                $waktuMulai = Carbon::parse($paket->waktu_mulai);
-                $waktuSelesai = $waktuMulai->copy()->addMinutes($paket->durasi_menit);
-
-                $paket->waktu_mulai_timestamp = $waktuMulai->timestamp;
-                $paket->waktu_selesai_timestamp = $waktuSelesai->timestamp;
-                $paket->server_now_timestamp = $now->timestamp;
-
-                if ($now->isBefore($waktuMulai)) {
-                    $paket->event_status = 'Akan Datang';
-                } elseif ($now->between($waktuMulai, $waktuSelesai)) {
-                    $paket->event_status = 'Sedang Berlangsung';
-                } else {
-                    $paket->event_status = 'Telah Selesai';
-                }
-            }
+{
+    $jenjang = $request->get('jenjang');
+    $paketTryouts = PaketTryout::when($jenjang, function ($query, $jenjang) {
+        return $query->whereHas('mataPelajaran', function($query) use ($jenjang) {
+            $query->where('jenjang_pendidikan', $jenjang);
         });
+    })
+    ->with('mataPelajaran')
+    ->latest()
+    ->get();
 
-        return view('paket-tryout.index', compact('paketTryouts', 'jenjang'));
-    }
+    $paketTryouts->each(function ($paket) {
+        // Logika ini sekarang berlaku untuk 'event' DAN 'pacu'
+        if (in_array($paket->tipe_paket, ['event', 'pacu']) && $paket->waktu_mulai) {
+            $now = Carbon::now();
+            $waktuMulai = Carbon::parse($paket->waktu_mulai);
+            $waktuSelesai = $waktuMulai->copy()->addMinutes($paket->durasi_menit);
+
+            $paket->waktu_mulai_timestamp = $waktuMulai->timestamp;
+            $paket->waktu_selesai_timestamp = $waktuSelesai->timestamp;
+            $paket->server_now_timestamp = $now->timestamp;
+
+            if ($now->isBefore($waktuMulai)) {
+                $paket->event_status = 'Akan Datang';
+            } elseif ($now->between($waktuMulai, $waktuSelesai)) {
+                $paket->event_status = 'Sedang Berlangsung';
+            } else {
+                $paket->event_status = 'Telah Selesai';
+            }
+        }
+    });
+
+    return view('paket-tryout.index', compact('paketTryouts', 'jenjang'));
+}
 
    public function showAnalysis(PaketTryout $paketTryout)
 {
@@ -247,10 +248,9 @@ class PaketTryoutController extends Controller
 
     public function store(Request $request)
 {
-    // 1. Gabungkan semua aturan validasi menjadi satu array
     $rules = [
         'nama_paket' => 'required|string|max:255',
-        'tipe_paket' => 'required|in:tryout,ulangan,event',
+        'tipe_paket' => 'required|in:tryout,ulangan,event,pacu', // <-- DITAMBAH
         'deskripsi' => 'nullable|string',
         'jenjang_pendidikan' => 'required|string|in:SD,SMP,SMA',
         'mata_pelajaran' => 'required|array|min:1',
@@ -259,23 +259,20 @@ class PaketTryoutController extends Controller
         'mata_pelajaran.*.urutan' => 'required|integer',
         'mata_pelajaran.*.soal' => 'required|array|min:1',
         'mata_pelajaran.*.soal.*' => 'exists:soal,id',
+
     ];
 
-    // 2. Tambahkan aturan kondisional
-    // Jika tipe BUKAN 'ulangan', maka min_wajib & max_opsional boleh diisi
     if ($request->input('tipe_paket') !== 'ulangan') {
         $rules['min_wajib'] = 'nullable|integer|min:0';
         $rules['max_opsional'] = 'nullable|integer|min:0';
     }
 
-    // Jika tipe adalah 'event', maka waktu_mulai wajib diisi
-    if ($request->input('tipe_paket') === 'event') {
+    // 'waktu_mulai' sekarang wajib untuk 'event' dan 'pacu'
+    if (in_array($request->input('tipe_paket'), ['event', 'pacu'])) { // <-- DIPERBAIKI
         $rules['waktu_mulai'] = 'required|date';
     }
 
-    // 3. Panggil validate HANYA SATU KALI
     $validatedData = $request->validate($rules);
-
     $totalDurasi = collect($request->mata_pelajaran)->sum('durasi');
 
     DB::transaction(function () use ($request, $validatedData, $totalDurasi) {
@@ -284,11 +281,9 @@ class PaketTryoutController extends Controller
             'nama_paket' => $validatedData['nama_paket'],
             'tipe_paket' => $validatedData['tipe_paket'],
             'deskripsi' => $validatedData['deskripsi'],
-
-            // Logika penyimpanan yang sudah diperbaiki
             'min_wajib' => $validatedData['min_wajib'] ?? null,
             'max_opsional' => $validatedData['max_opsional'] ?? null,
-
+            'durasi_istirahat_wajib' => 0, // <-- DITAMBAH
             'kode_soal' => strtoupper(Str::random(6)),
             'status' => 'published',
             'durasi_menit' => $totalDurasi,
@@ -301,11 +296,10 @@ class PaketTryoutController extends Controller
         foreach ($request->mata_pelajaran as $mapelData) {
             $mapelSyncData[$mapelData['id']] = [
                 'durasi_menit' => $mapelData['durasi'],
-                'urutan' => $mapelData['urutan']
+                'urutan' => $mapelData['urutan'],
             ];
-
             foreach ($mapelData['soal'] as $soalId) {
-                $soalDipilihSyncData[$soalId] = ['bobot' => 1]; // Default bobot 1
+                $soalDipilihSyncData[$soalId] = ['bobot' => 1];
             }
         }
 
@@ -315,6 +309,7 @@ class PaketTryoutController extends Controller
 
     return redirect()->route('paket-tryout.index', ['jenjang' => $request->jenjang_pendidikan])->with('success', 'Paket Tryout berhasil dibuat.');
 }
+
 
 
     public function showResponses(PaketTryout $paketTryout)
@@ -437,44 +432,48 @@ class PaketTryoutController extends Controller
     return view('paket-tryout.responses', compact('paketTryout', 'responseCount', 'averageScore', 'students', 'semuaMapelPaket'));
 }
     public function show(PaketTryout $paketTryout)
-    {
-        // --- PERBAIKAN DI SINI ---
-        // Mengubah 'pivot_urutan' menjadi 'urutan' yang merupakan nama kolom asli di tabel pivot.
-        $paketTryout->load(['mataPelajaran' => function ($query) {
-            $query->orderBy('paket_mapel.urutan', 'asc');
-        }, 'soalPilihan.mataPelajaran']);
+{
+    $paketTryout->load(['mataPelajaran' => function ($query) {
+        $query->orderBy('paket_mapel.urutan', 'asc');
+    }, 'soalPilihan.mataPelajaran']);
 
-        // Kelompokkan soal yang dipilih berdasarkan mata pelajaran
-        $soalPerMapel = $paketTryout->soalPilihan->groupBy('mata_pelajaran_id');
+    $soalPerMapel = $paketTryout->soalPilihan->groupBy('mata_pelajaran_id');
+    $totalDurasi = $paketTryout->mataPelajaran->sum('pivot.durasi_menit');
 
-        $totalDurasi = $paketTryout->mataPelajaran->sum('pivot.durasi_menit');
-            if ($paketTryout->tipe_paket == 'event' && $paketTryout->waktu_mulai) {
-            $now = Carbon::now();
-            $waktuMulai = Carbon::parse($paketTryout->waktu_mulai);
-            $waktuSelesai = $waktuMulai->copy()->addMinutes($paketTryout->durasi_menit);
+    // Logika ini sekarang berlaku untuk 'event' DAN 'pacu'
+    if (in_array($paketTryout->tipe_paket, ['event', 'pacu']) && $paketTryout->waktu_mulai) { // <-- DIPERBAIKI
+        $now = \Carbon\Carbon::now();
+        $waktuMulai = \Carbon\Carbon::parse($paketTryout->waktu_mulai);
+        $waktuSelesai = $waktuMulai->copy()->addMinutes($paketTryout->durasi_menit);
 
-            $paketTryout->waktu_mulai_timestamp = $waktuMulai->timestamp;
-            $paketTryout->waktu_selesai_timestamp = $waktuSelesai->timestamp;
-            $paketTryout->server_now_timestamp = $now->timestamp;
+        $paketTryout->waktu_mulai_timestamp = $waktuMulai->timestamp;
+        $paketTryout->waktu_selesai_timestamp = $waktuSelesai->timestamp;
+        $paketTryout->server_now_timestamp = $now->timestamp;
 
-            if ($now->isBefore($waktuMulai)) {
-                $paketTryout->event_status = 'Akan Datang';
-            } elseif ($now->between($waktuMulai, $waktuSelesai)) {
-                $paketTryout->event_status = 'Sedang Berlangsung';
-            } else {
-                $paketTryout->event_status = 'Telah Selesai';
-            }
+        if ($now->isBefore($waktuMulai)) {
+            $paketTryout->event_status = 'Akan Datang';
+        } elseif ($now->between($waktuMulai, $waktuSelesai)) {
+            $paketTryout->event_status = 'Sedang Berlangsung';
+        } else {
+            $paketTryout->event_status = 'Telah Selesai';
         }
-        return view('paket-tryout.show', compact('paketTryout', 'totalDurasi', 'soalPerMapel'));
     }
+
+    return view('paket-tryout.show', compact('paketTryout', 'totalDurasi', 'soalPerMapel'));
+}
     public function edit(PaketTryout $paketTryout)
-    {
-        $paketTryout->load(['mataPelajaran', 'soalPilihan']);
-        $jenjang = $paketTryout->mataPelajaran->first()->jenjang_pendidikan;
-        $mataPelajaranOptions = MataPelajaran::where('jenjang_pendidikan', $jenjang)->with('soal')->get();
-        $selectedSoalIds = $paketTryout->soalPilihan->pluck('id')->toArray();
-        return view('paket-tryout.edit', compact('paketTryout', 'mataPelajaranOptions', 'jenjang', 'selectedSoalIds'));
-    }
+{
+    $paketTryout->load(['mataPelajaran', 'soalPilihan']);
+    $jenjang = $paketTryout->mataPelajaran->first()->jenjang_pendidikan;
+    // --- PERBAIKAN DI SINI ---
+    $mataPelajaranOptions = MataPelajaran::where('jenjang_pendidikan', $jenjang)
+                                       ->with('soal')
+                                       ->orderBy('is_wajib', 'desc') // Tambahkan baris ini
+                                       ->get();
+    // --- SELESAI PERBAIKAN ---
+    $selectedSoalIds = $paketTryout->soalPilihan->pluck('id')->toArray();
+    return view('paket-tryout.edit', compact('paketTryout', 'mataPelajaranOptions', 'jenjang', 'selectedSoalIds'));
+}
 
     public function update(Request $request, PaketTryout $paketTryout)
 {
@@ -482,10 +481,10 @@ class PaketTryoutController extends Controller
         return redirect()->route('paket-tryout.show', $paketTryout)
             ->with('error', 'Gagal! Paket tryout yang sudah dipublikasikan tidak dapat diubah lagi. Ubah statusnya ke "draft" terlebih dahulu.');
     }
-    // 1. Gabungkan semua aturan validasi menjadi satu array
+
     $rules = [
         'nama_paket' => 'required|string|max:255',
-        'tipe_paket' => 'required|in:tryout,ulangan,event',
+        'tipe_paket' => 'required|in:tryout,ulangan,event,pacu', // <-- DITAMBAH
         'deskripsi' => 'nullable|string',
         'mata_pelajaran' => 'required|array|min:1',
         'mata_pelajaran.*.id' => 'required|exists:mata_pelajaran,id',
@@ -493,21 +492,20 @@ class PaketTryoutController extends Controller
         'mata_pelajaran.*.urutan' => 'required|integer',
         'mata_pelajaran.*.soal' => 'required|array|min:1',
         'mata_pelajaran.*.soal.*' => 'exists:soal,id',
+
     ];
 
-    // 2. Tambahkan aturan kondisional
     if ($request->input('tipe_paket') !== 'ulangan') {
         $rules['min_wajib'] = 'nullable|integer|min:0';
         $rules['max_opsional'] = 'nullable|integer|min:0';
     }
 
-    if ($request->input('tipe_paket') === 'event') {
+    // 'waktu_mulai' sekarang wajib untuk 'event' dan 'pacu'
+    if (in_array($request->input('tipe_paket'), ['event', 'pacu'])) { // <-- DIPERBAIKI
         $rules['waktu_mulai'] = 'required|date';
     }
 
-    // 3. Panggil validate HANYA SATU KALI
     $validatedData = $request->validate($rules);
-
     $totalDurasi = collect($validatedData['mata_pelajaran'])->sum('durasi');
 
     DB::transaction(function () use ($request, $paketTryout, $validatedData, $totalDurasi) {
@@ -515,11 +513,9 @@ class PaketTryoutController extends Controller
             'nama_paket' => $validatedData['nama_paket'],
             'tipe_paket' => $validatedData['tipe_paket'],
             'deskripsi' => $validatedData['deskripsi'],
-
-            // Logika penyimpanan yang sudah diperbaiki
             'min_wajib' => $validatedData['min_wajib'] ?? null,
             'max_opsional' => $validatedData['max_opsional'] ?? null,
-
+            'durasi_istirahat_wajib' => 0, // <-- DITAMBAH
             'durasi_menit' => $totalDurasi,
             'waktu_mulai' => $validatedData['waktu_mulai'] ?? null,
         ]);
@@ -541,10 +537,7 @@ class PaketTryoutController extends Controller
             }
         }
 
-        // --- INI ADALAH BARIS YANG DIPERBAIKI ---
         $paketTryout->mataPelajaran()->sync($mapelSyncData);
-        // -----------------------------------------
-
         $paketTryout->soalPilihan()->sync($soalDipilihSyncData);
     });
 

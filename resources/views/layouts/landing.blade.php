@@ -114,5 +114,28 @@
     <script src="{{ asset('js/jquery.magnific-popup.js') }}"></script>
     <script src="{{ asset('js/validator.min.js') }}"></script>
     <script src="{{ asset('js/scripts.js') }}"></script>
+    <link rel="stylesheet" href="{{ asset('css/swiper.css') }}">
+<script src="{{ asset('js/swiper.min.js') }}"></script>
+
+<script>
+    // Inisialisasi Swiper
+    document.addEventListener('DOMContentLoaded', function () {
+        var mySwiper = new Swiper('.swiper-container', {
+            // Opsi-opsi slider
+            loop: true,
+            autoplay: {
+                delay: 4000,
+            },
+            pagination: {
+                el: '.swiper-pagination',
+                clickable: true,
+            },
+            navigation: {
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev',
+            },
+        });
+    });
+</script>
 </body>
 </html>

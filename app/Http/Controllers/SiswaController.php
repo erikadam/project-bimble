@@ -20,7 +20,8 @@ use App\Models\Ulangan;
 use App\Models\UlanganSession; // Tambahkan ini
 use App\Models\JawabanUlangan;
 use App\Models\AboutUs;
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SiswaController extends Controller
 {
@@ -37,7 +38,7 @@ class SiswaController extends Controller
         $companyGoals = CompanyGoal::all()->groupBy('type');
         $testimonials = Testimonial::all();
         $sliders = SliderImage::all();
-        $aboutUs = AboutUs::first();
+        $aboutUs = AboutUs::with('images')->first();
 
         return view('welcome', compact('upcomingEvents', 'companyGoals', 'testimonials', 'sliders', 'aboutUs'));
     }
@@ -59,8 +60,9 @@ class SiswaController extends Controller
         // --- PERBAIKAN DI SINI ---
         // Menghapus filter 'tipe_paket' agar semua jenis tryout fleksibel muncul
         $query = PaketTryout::where('status', 'published')
-                            ->where('tipe_paket', '!=', 'event') // Hanya tampilkan yang BUKAN event
+                            ->where('tipe_paket', 'tryout') // Hanya tampilkan yang BUKAN event
                             ->with('guru');
+
 
         if ($jenjang) {
             $query->whereHas('mataPelajaran', function ($q) use ($jenjang) {
@@ -200,43 +202,58 @@ class SiswaController extends Controller
         }
         return view('siswa.pilih-mapel', compact('paketTryout', 'mataPelajaran'));
     }
-        public function mulaiPengerjaan(Request $request, PaketTryout $paketTryout)
-    {
-        $ujianSiswa = Session::get('ujian_siswa');
-        if (!$ujianSiswa || $ujianSiswa['paket_id'] != $paketTryout->id) {
-            return redirect()->route('siswa.ujian.mulai', $paketTryout->id);
-        }
-
-        $pilihanWajibSiswa = $request->input('mata_pelajaran_wajib', []);
-        $pilihanOpsionalSiswa = $request->input('mata_pelajaran_opsional', []);
-        $mapelPilihan = array_merge($pilihanWajibSiswa, $pilihanOpsionalSiswa);
-
-        if ($paketTryout->tipe_paket != 'ulangan') {
-            $minWajib = $paketTryout->min_wajib ?? 0;
-            $maxOpsional = $paketTryout->max_opsional ?? 0;
-
-            if (count($pilihanWajibSiswa) < $minWajib) {
-                throw ValidationException::withMessages(['mata_pelajaran_wajib' => 'Anda harus memilih minimal '.$minWajib.' mata pelajaran wajib.']);
-            }
-            if (count($pilihanOpsionalSiswa) > $maxOpsional) {
-                throw ValidationException::withMessages(['mata_pelajaran_opsional' => 'Anda hanya dapat memilih maksimal '.$maxOpsional.' mata pelajaran opsional.']);
-            }
-        }
-
-        if (empty($mapelPilihan)) {
-            return redirect()->back()->withErrors(['pilihan' => 'Anda harus memilih setidaknya satu mata pelajaran.']);
-        }
-
-        Session::put('ujian_siswa.mapel_pilihan', $mapelPilihan);
-        $mapelPertamaId = $mapelPilihan[0];
-
-        // "SAKLAR PINTAR": Mengarahkan berdasarkan tipe paket
-        if ($paketTryout->tipe_paket === 'event') {
-            return redirect()->route('siswa.ujian.show_soal', ['paketTryout' => $paketTryout->id, 'mapelId' => $mapelPertamaId]);
-        } else {
-            return redirect()->route('siswa.ujian.fleksibel.show_soal', ['paketTryout' => $paketTryout->id, 'mapelId' => $mapelPertamaId]);
-        }
+    public function mulaiPengerjaan(Request $request, PaketTryout $paketTryout)
+{
+    $ujianSiswa = Session::get('ujian_siswa');
+    if (!$ujianSiswa || $ujianSiswa['paket_id'] != $paketTryout->id) {
+        return redirect()->route('siswa.ujian.mulai', $paketTryout->id);
     }
+
+    $pilihanWajibSiswa = $request->input('mata_pelajaran_wajib', []);
+    $pilihanOpsionalSiswa = $request->input('mata_pelajaran_opsional', []);
+    $mapelPilihan = array_merge($pilihanWajibSiswa, $pilihanOpsionalSiswa);
+
+    if (empty($mapelPilihan)) {
+        return redirect()->back()->withErrors(['pilihan' => 'Anda harus memilih setidaknya satu mata pelajaran.']);
+    }
+
+    $studentId = $ujianSiswa['student_id'];
+    $student = Student::find($studentId);
+    if ($student) {
+        $student->update(['mapel_pilihan' => json_encode($mapelPilihan)]);
+    }
+
+    Session::put('ujian_siswa.mapel_pilihan', $mapelPilihan);
+
+    // Ambil mapel pertama sesuai urutan dari paket
+    $mapelPertama = $paketTryout->mataPelajaran()
+                                ->whereIn('mata_pelajaran.id', $mapelPilihan)
+                                ->orderBy('paket_mapel.urutan', 'asc')
+                                ->first();
+
+    if (!$mapelPertama) {
+        return redirect()->back()->withErrors(['pilihan' => 'Gagal menentukan mata pelajaran pertama.']);
+    }
+
+    if ($paketTryout->tipe_paket === 'pacu') {
+        return redirect()->route('siswa.ujian.pacu.show_soal', [
+            'paketTryout' => $paketTryout->id,
+            'mapelId' => $mapelPertama->id
+        ]);
+    }
+    elseif ($paketTryout->tipe_paket === 'event') {
+        return redirect()->route('siswa.ujian.show_soal', [
+            'paketTryout' => $paketTryout->id,
+            'mapelId' => $mapelPertama->id
+        ]);
+    }
+    else { // Ini untuk 'tryout' atau tipe fleksibel lainnya
+        return redirect()->route('siswa.ujian.fleksibel.show_soal', [
+            'paketTryout' => $paketTryout->id,
+            'mapelId' => $mapelPertama->id
+        ]);
+    }
+}
 
      // Untuk tipe Event
 public function showSoal(Request $request, PaketTryout $paketTryout, $mapelId)
@@ -1126,4 +1143,335 @@ public function hasilFleksibel(PaketTryout $paketTryout)
         return view('siswa.review-ulangan', compact('ulanganSession', 'jawabanSiswa'));
     }
 
+public function showSoalPacu(PaketTryout $paketTryout, $mapelId)
+{
+    $ujianSiswa = Session::get('ujian_siswa');
+    if (!$ujianSiswa) { abort(404, 'Sesi ujian tidak ditemukan.'); }
+
+    $student = Student::findOrFail($ujianSiswa['student_id']);
+    $mapel = MataPelajaran::findOrFail($mapelId);
+
+    $durasiMapel = $paketTryout->mataPelajaran()->where('mata_pelajaran.id', $mapelId)->first()->pivot->durasi_menit;
+
+    if (!Session::has("ujian_siswa.end_time.{$mapelId}")) {
+        $waktuSelesai = now()->addMinutes($durasiMapel);
+        Session::put("ujian_siswa.end_time.{$mapelId}", $waktuSelesai->timestamp);
+    }
+    $waktuSelesaiTimestamp = Session::get("ujian_siswa.end_time.{$mapelId}");
+
+    // --- PERBAIKAN KINERJA ---
+    // Mengambil soal dan jawaban tersimpan dengan lebih efisien
+    $soalIds = $paketTryout->soalPilihan()->where('mata_pelajaran_id', $mapelId)->pluck('soal.id');
+
+    // Eager load relasi yang dibutuhkan untuk mengurangi query
+    $soals = Soal::whereIn('id', $soalIds)
+                 ->with(['pilihanJawaban', 'pernyataans.pilihanJawabans'])
+                 ->get();
+
+    $jawabanTersimpan = JawabanPeserta::where('student_id', $student->id)
+                                      ->whereIn('soal_id', $soalIds)
+                                      ->get()
+                                      ->keyBy('soal_id'); // keyBy untuk akses lebih cepat di blade
+
+    return view('siswa.soal-mapel-pacu', [
+        'paketTryout' => $paketTryout,
+        'student' => $student,
+        'mapelBerikutnya' => $mapel,
+        'soals' => $soals,
+        'waktuSelesaiTimestamp' => $waktuSelesaiTimestamp,
+        'jawabanTersimpan' => $jawabanTersimpan
+    ]);
+}
+private function cekJawaban($soal, $jawabanPeserta)
+{
+    if ($jawabanPeserta === null) {
+        return false;
+    }
+
+    switch ($soal->tipe_soal) {
+        case 'pilihan_ganda':
+            $kunciJawaban = $soal->pilihanJawaban->where('apakah_benar', true)->first();
+            return $kunciJawaban && $jawabanPeserta === $kunciJawaban->pilihan_teks;
+
+        case 'pilihan_ganda_majemuk':
+            if (!is_array($jawabanPeserta)) return false;
+            $kunciJawaban = $soal->pilihanJawaban->where('apakah_benar', true)->pluck('pilihan_teks')->toArray();
+            // Urutkan kedua array untuk memastikan perbandingan yang konsisten
+            sort($kunciJawaban);
+            sort($jawabanPeserta);
+            return $kunciJawaban === $jawabanPeserta;
+
+        case 'pilihan_ganda_kompleks':
+            if (!is_array($jawabanPeserta)) return false;
+            $kunciJawabanBenar = $soal->pernyataans->mapWithKeys(function ($pernyataan) {
+                $pilihanBenar = $pernyataan->pilihanJawabans->firstWhere('apakah_benar', true);
+                return [$pernyataan->id => $pilihanBenar ? $pilihanBenar->id : null];
+            });
+
+            if (count($jawabanPeserta) !== $kunciJawabanBenar->count()) {
+                return false;
+            }
+
+            foreach ($kunciJawabanBenar as $pernyataanId => $pilihanBenarId) {
+                if (!isset($jawabanPeserta[$pernyataanId]) || $jawabanPeserta[$pernyataanId] != $pilihanBenarId) {
+                    return false; // Jika satu saja salah, seluruh soal dianggap salah
+                }
+            }
+            return true; // Semua jawaban pernyataan benar
+
+        default:
+            return false;
+    }
+}
+public function simpanJawabanPacu(Request $request, PaketTryout $paketTryout, $mapelId)
+{
+    $ujianSiswa = Session::get('ujian_siswa');
+    if (!$ujianSiswa) { return redirect()->route('welcome')->with('error', 'Sesi ujian Anda telah berakhir.'); }
+
+    $student = Student::findOrFail($ujianSiswa['student_id']);
+    $jawabanData = $request->input('jawaban_soal', []);
+
+    DB::transaction(function () use ($student, $paketTryout, $mapelId, $jawabanData) {
+        $soalPilihanIds = $paketTryout->soalPilihan()->where('mata_pelajaran_id', $mapelId)->pluck('soal.id');
+        $semuaSoalDiMapel = Soal::whereIn('id', $soalPilihanIds)->get();
+
+        foreach ($semuaSoalDiMapel as $soal) {
+            $jawabanPeserta = $jawabanData[$soal->id] ?? null;
+            $apakahBenar = $this->cekJawaban($soal, $jawabanPeserta);
+            $jawabanUntukDisimpan = is_array($jawabanPeserta) ? json_encode($jawabanPeserta) : ($jawabanPeserta ?? '');
+
+            JawabanPeserta::updateOrCreate(
+                ['student_id' => $student->id, 'soal_id' => $soal->id],
+                [
+                    'paket_tryout_id' => $paketTryout->id,
+                    'mata_pelajaran_id' => $soal->mata_pelajaran_id,
+                    'jawaban_peserta' => $jawabanUntukDisimpan,
+                    'apakah_benar' => $apakahBenar,
+                ]
+            );
+        }
+    });
+
+    Session::push('ujian_siswa.mapel_sudah_dikerjakan', $mapelId);
+    $mapelSudahDikerjakan = Session::get('ujian_siswa.mapel_sudah_dikerjakan', []);
+    $mapelPilihanIds = Session::get('ujian_siswa.mapel_pilihan', []);
+
+    $nextMapelId = collect($mapelPilihanIds)->first(function ($id) use ($mapelSudahDikerjakan) {
+        return !in_array($id, $mapelSudahDikerjakan);
+    });
+
+    // ===================================================================
+    // INI ADALAH PERBAIKAN FINAL UNTUK BUG HALAMAN ISTIRAHAT
+    // ===================================================================
+    // 1. Cek kondisi dasar: Fitur istirahat aktif? Siswa BELUM istirahat? Dan ujian belum selesai?
+    if ((int)$paketTryout->durasi_istirahat_wajib > 0 && !$student->istirahat_selesai && $nextMapelId) {
+
+        // 2. Dapatkan daftar mapel WAJIB yang BENAR-BENAR DIPILIH siswa.
+        $mapelWajibIds = $paketTryout->mataPelajaran()->where('is_wajib', true)->pluck('mata_pelajaran.id')->toArray();
+        $chosenRequiredMapelIds = array_intersect($mapelPilihanIds, $mapelWajibIds);
+
+        // 3. Lanjutkan hanya jika siswa memang memilih mapel wajib.
+        if (!empty($chosenRequiredMapelIds)) {
+
+            // 4. Cek apakah semua mapel wajib yang dipilih siswa sudah ada di daftar yang dikerjakan.
+            $allRequiredCompleted = empty(array_diff($chosenRequiredMapelIds, $mapelSudahDikerjakan));
+
+            if ($allRequiredCompleted) {
+                // 5. Jika semua kondisi terpenuhi, baru update status siswa & arahkan ke halaman istirahat.
+                // Status `istirahat_selesai` = true akan mencegah blok kode ini berjalan lagi.
+                $student->update(['istirahat_selesai' => true]);
+                Session::forget('istirahat_end_time'); // Reset timer sesi istirahat sebelumnya jika ada
+                return redirect()->route('siswa.ujian.pacu.show_istirahat', $paketTryout->id);
+            }
+        }
+    }
+    // --- AKHIR PERBAIKAN ---
+
+    // Jika logika istirahat tidak terpenuhi, lanjutkan seperti biasa.
+    if ($nextMapelId) {
+        return redirect()->route('siswa.ujian.pacu.show_soal', ['paketTryout' => $paketTryout->id, 'mapelId' => $nextMapelId]);
+    }
+
+    // Jika tidak ada mapel lagi, arahkan ke halaman hasil.
+    Session::put('ujian_selesai_paket_' . $paketTryout->id, $ujianSiswa['student_id']);
+    return redirect()->route('siswa.ujian.pacu.hasil', $paketTryout->id);
+}
+
+public function hasilPacu(PaketTryout $paketTryout)
+{
+    $ujianSiswa = Session::get('ujian_siswa');
+    $studentIdFromSelesai = Session::get('ujian_selesai_paket_' . $paketTryout->id);
+    $studentId = $ujianSiswa['student_id'] ?? $studentIdFromSelesai;
+
+    if (!$studentId) {
+        $student = Student::where('session_id', Session::getId())
+                          ->where('paket_tryout_id', $paketTryout->id)
+                          ->latest()
+                          ->first();
+
+        if (!$student) {
+            return redirect()->route('welcome')->with('error', 'Sesi ujian tidak dapat ditemukan. Silakan coba lagi.');
+        }
+        $studentId = $student->id;
+    }
+
+    $student = Student::with('jawabanPeserta.soal.mataPelajaran')->findOrFail($studentId);
+    $mapelPilihanIds = json_decode($student->mapel_pilihan, true);
+
+    if (empty($mapelPilihanIds)) {
+        $mapelPilihanIds = $student->jawabanPeserta->pluck('soal.mata_pelajaran_id')->unique()->values()->toArray();
+    }
+
+    $semuaMapelPaket = collect();
+    if (!empty($mapelPilihanIds)) {
+        $semuaMapelPaket = $paketTryout->mataPelajaran()
+            ->whereIn('mata_pelajaran.id', $mapelPilihanIds)
+            ->orderBy('paket_mapel.urutan')
+            ->get();
+    }
+
+    $hasilPerMapel = [];
+    foreach ($semuaMapelPaket as $mapel) {
+        $hasilPerMapel[$mapel->id] = ['nama_mapel' => $mapel->nama_mapel, 'total_soal' => 0, 'total_benar' => 0, 'dikerjakan' => false];
+    }
+
+    $jawabanPerMapel = $student->jawabanPeserta->groupBy('soal.mata_pelajaran_id');
+
+    foreach ($jawabanPerMapel as $mapelId => $jawabanMapel) {
+        if (isset($hasilPerMapel[$mapelId])) {
+            $totalSoalMapel = $paketTryout->soalPilihan()->where('mata_pelajaran_id', $mapelId)->count();
+            $totalBenarMapel = $jawabanMapel->where('apakah_benar', true)->count();
+
+            $hasilPerMapel[$mapelId] = [
+                'nama_mapel' => $jawabanMapel->first()->soal->mataPelajaran->nama_mapel,
+                'total_soal' => $totalSoalMapel,
+                'total_benar' => $totalBenarMapel,
+                'dikerjakan' => true
+            ];
+        }
+    }
+
+    Session::forget('ujian_siswa');
+    Session::forget('istirahat_end_time');
+    Session::forget('ujian_selesai_paket_' . $paketTryout->id);
+
+    return view('siswa.hasil-pacu', compact('paketTryout', 'student', 'hasilPerMapel', 'semuaMapelPaket'));
+}
+public function autosaveJawabanPacu(Request $request, PaketTryout $paketTryout, $mapelId)
+{
+    try {
+        $ujianSiswa = Session::get('ujian_siswa');
+        if (!$ujianSiswa) {
+            return response()->json(['success' => false, 'message' => 'Sesi tidak valid.'], 403);
+        }
+
+        $validated = $request->validate([
+            'soal_id' => 'required|integer|exists:soal,id',
+            'jawaban' => 'present', // 'present' berarti field harus ada, tapi boleh null atau kosong
+        ]);
+
+        $student = Student::findOrFail($ujianSiswa['student_id']);
+        $soal = Soal::find($validated['soal_id']);
+        if (!$soal) {
+            return response()->json(['success' => false, 'message' => 'Soal tidak ditemukan.'], 404);
+        }
+
+        $jawabanPeserta = $validated['jawaban'];
+        $apakahBenar = $this->cekJawaban($soal, $jawabanPeserta);
+        $jawabanUntukDisimpan = is_array($jawabanPeserta) ? json_encode($jawabanPeserta) : $jawabanPeserta;
+
+        JawabanPeserta::updateOrCreate(
+            ['student_id' => $student->id, 'soal_id' => $soal->id],
+            [
+                'paket_tryout_id' => $paketTryout->id,
+                'mata_pelajaran_id' => $mapelId,
+                'jawaban_peserta' => $jawabanUntukDisimpan ?? '',
+                'apakah_benar' => $apakahBenar,
+            ]
+        );
+
+        return response()->json(['success' => true, 'message' => 'Tersimpan ✓']);
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('Autosave Pacu Gagal: ' . $e->getMessage());
+        return response()->json(['success' => false, 'message' => 'Server Error'], 500);
+    }
+}
+public function showIstirahatPacu(PaketTryout $paketTryout)
+{
+    $ujianSiswa = Session::get('ujian_siswa');
+    if (!$ujianSiswa) {
+        return redirect()->route('welcome')->with('error', 'Sesi istirahat tidak valid.');
+    }
+
+    $durasiIstirahatMenit = $paketTryout->durasi_istirahat_wajib;
+
+    if (!Session::has('istirahat_end_time')) {
+        $waktuSelesai = now()->addMinutes($durasiIstirahatMenit);
+        Session::put('istirahat_end_time', $waktuSelesai->timestamp);
+    }
+    $waktuSelesaiTimestamp = Session::get('istirahat_end_time');
+    $sisaWaktuDetik = max(0, $waktuSelesaiTimestamp - now()->timestamp);
+
+    $mapelSudahDikerjakan = Session::get('ujian_siswa.mapel_sudah_dikerjakan', []);
+    $mapelPilihan = Session::get('ujian_siswa.mapel_pilihan', []);
+
+    $mapelOpsionalBerikutnyaId = collect($mapelPilihan)->first(function ($mapelId) use ($mapelSudahDikerjakan) {
+        return !in_array($mapelId, $mapelSudahDikerjakan);
+    });
+
+    // --- PERBAIKAN: Mengambil nama mapel selanjutnya ---
+    $namaMapelSelanjutnya = 'Selesai';
+    if ($mapelOpsionalBerikutnyaId) {
+        $mapel = MataPelajaran::find($mapelOpsionalBerikutnyaId);
+        $namaMapelSelanjutnya = $mapel ? $mapel->nama_mapel : 'Sesi Berikutnya';
+    }
+
+    $nextUrl = route('siswa.ujian.pacu.hasil', $paketTryout->id);
+    if ($mapelOpsionalBerikutnyaId) {
+        $nextUrl = route('siswa.ujian.pacu.show_soal', ['paketTryout' => $paketTryout->id, 'mapelId' => $mapelOpsionalBerikutnyaId]);
+    }
+
+    return view('siswa.istirahat', compact('paketTryout', 'sisaWaktuDetik', 'nextUrl', 'namaMapelSelanjutnya'));
+}
+public function pilihPacu($jenjang = null)
+{
+    $query = PaketTryout::where('tipe_paket', 'pacu')
+                        ->where('status', 'published')
+                        ->with('guru', 'mataPelajaran');
+
+    if ($jenjang) {
+        $query->whereHas('mataPelajaran', function ($q) use ($jenjang) {
+            $q->where('jenjang_pendidikan', $jenjang);
+        });
+    }
+
+    $query->where(function($q) {
+        $q->where('waktu_mulai', '>', now())
+          ->orWhereRaw('DATE_ADD(waktu_mulai, INTERVAL durasi_menit MINUTE) > ?', [now()]);
+    });
+
+    $paketTryouts = $query->orderBy('waktu_mulai', 'asc')->get();
+
+    $now = now(); // Ambil waktu server sekali saja
+    $paketTryouts->each(function ($paket) use ($now) {
+        if ($paket->waktu_mulai) {
+            $waktuMulai = \Carbon\Carbon::parse($paket->waktu_mulai);
+
+            // Tambahkan atribut-atribut ini untuk digunakan di Blade
+            $paket->server_now_timestamp = $now->timestamp;
+            $paket->waktu_mulai_timestamp = $waktuMulai->timestamp;
+
+            if ($now->isBefore($waktuMulai)) {
+                $paket->event_status = 'Akan Datang';
+            } else {
+                $paket->event_status = 'Sedang Berlangsung';
+            }
+        }
+    });
+
+    return view('siswa.pilih-pacu', [
+        'paketTryouts' => $paketTryouts,
+        'jenjang' => $jenjang
+    ]);
+}
 }

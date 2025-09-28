@@ -1,7 +1,7 @@
 <x-guest-layout>
     <div class="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4">
         <div class="w-full max-w-4xl bg-gray-800 p-8 rounded-lg shadow-md">
-            <h1 class="text-2xl font-bold text-center text-white mb-2">Pilih Paket Ujian</h1>
+            <h1 class="text-2xl font-bold text-center text-white mb-2">Paket Ujian Flexible</h1>
             <p class="text-center text-gray-300 mb-8">Silakan pilih paket tryout yang ingin Anda kerjakan untuk jenjang <span class="font-semibold">{{ $jenjang }}</span>.</p>
 
             <div class="space-y-4">
