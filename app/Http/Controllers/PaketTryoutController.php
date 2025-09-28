@@ -144,8 +144,16 @@ class PaketTryoutController extends Controller
                     $jawabanDecoded = json_decode($jawabanSiswa->jawaban_peserta, true);
                     $semuaBenar = true;
 
-                    // Jika jawaban tidak valid atau tidak lengkap, anggap salah
-                    if (json_last_error() !== JSON_ERROR_NONE || count($jawabanDecoded) !== $kunciJawabanBenar->count()) {
+                    // --- PERBAIKAN BUG INI ---
+                    // Memastikan $jawabanDecoded adalah array yang valid. Jika bukan (null, string, atau skalar),
+                    // kita set ke array kosong.
+                    if (!is_array($jawabanDecoded)) {
+                        $jawabanDecoded = [];
+                    }
+                    // --------------------------
+
+                    // Jika jawaban tidak lengkap (jumlah pernyataan yang dijawab tidak sama dengan kunci), anggap salah
+                    if (count($jawabanDecoded) !== $kunciJawabanBenar->count()) {
                         $semuaBenar = false;
                     } else {
                         // Bandingkan setiap item jawaban siswa dengan kunci
@@ -175,7 +183,12 @@ class PaketTryoutController extends Controller
                     foreach ($pernyataan->pilihanJawabans as $pilihan) {
                         // Hitung berapa banyak siswa yang memilih pilihan INI untuk pernyataan INI
                         $count = $jawabanForThisSoal->filter(function ($jawaban) use ($pernyataan, $pilihan) {
+                            // --- PERBAIKAN KECIL DI SINI: Pastikan decoding berhasil dan hasilnya array ---
                             $jawabanDecoded = json_decode($jawaban->jawaban_peserta, true);
+                            if (!is_array($jawabanDecoded)) {
+                                return false;
+                            }
+                            // --------------------------------------------------------------------------
                             return isset($jawabanDecoded[$pernyataan->id]) && $jawabanDecoded[$pernyataan->id] == $pilihan->id;
                         })->count();
 
@@ -204,24 +217,20 @@ class PaketTryoutController extends Controller
     return view('paket-tryout.analysis', compact('paketTryout', 'analysisDataByMapel', 'totalResponses'));
 }
    public function create(Request $request)
-{
-    // Mengambil jenjang dari request, sama seperti kode asli Anda
-    $jenjang = $request->get('jenjang');
+    {
+        // Ambil SEMUA mata pelajaran, kita akan filter di frontend
+        $mataPelajaran = MataPelajaran::with('soal')
+                                      ->orderBy('jenjang_pendidikan')
+                                      ->orderBy('kelas')
+                                      ->orderBy('is_wajib', 'desc')
+                                      ->orderBy('nama_mapel', 'asc')
+                                      ->get();
 
-    // Memulai query ke model MataPelajaran
-    $mataPelajaranQuery = MataPelajaran::query();
+        // Ambil jenjang dari request untuk nilai default filter
+        $jenjang = $request->get('jenjang');
 
-    // Jika ada jenjang, filter berdasarkan jenjang tersebut
-    if ($jenjang) {
-        $mataPelajaranQuery->where('jenjang_pendidikan', $jenjang);
+        return view('paket-tryout.create', compact('mataPelajaran', 'jenjang'));
     }
-
-    // Tambahkan pengurutan: mata pelajaran wajib (is_wajib = 1) akan muncul di atas
-    $mataPelajaran = $mataPelajaranQuery->orderBy('is_wajib', 'desc')->with('soal')->get();
-
-    // Mengirim data yang benar-benar dibutuhkan oleh view Anda
-    return view('paket-tryout.create', compact('mataPelajaran', 'jenjang'));
-}
 
 
     public function laporanIndex(Request $request)

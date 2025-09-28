@@ -25,6 +25,8 @@ class MataPelajaran extends Model
         'nama_mapel',
         'jenjang_pendidikan',
         'is_wajib',
+        'kelas',
+        'guru_id',
     ];
     public function soal()
     {
@@ -33,5 +35,10 @@ class MataPelajaran extends Model
     public function paketTryout()
     {
         return $this->belongsToMany(PaketTryout::class, 'paket_mapel');
+    }
+    public function guru()
+    {
+        // Relasi 'belongsTo' ke model User, menggunakan foreign key 'guru_id'
+        return $this->belongsTo(User::class, 'guru_id');
     }
 }

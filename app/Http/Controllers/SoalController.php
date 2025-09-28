@@ -16,10 +16,41 @@ use Illuminate\Support\Facades\Storage;
 class SoalController extends Controller
 {
     public function pilihMataPelajaran(Request $request, $jenjang)
-    {
-        $mataPelajaran = MataPelajaran::where('jenjang_pendidikan', $jenjang)->orderBy('nama_mapel', 'asc')->get();
-        return view('soal.pilih-mata-pelajaran', compact('mataPelajaran', 'jenjang'));
+{
+    // Mengambil semua input filter dari URL
+    $selectedKelas = $request->input('kelas');
+    $selectedTipe = $request->input('tipe'); // Filter baru untuk wajib/opsional
+
+    // Mengambil daftar kelas yang tersedia untuk dropdown filter
+    $availableKelas = MataPelajaran::where('jenjang_pendidikan', $jenjang)
+                                    ->distinct()
+                                    ->orderBy('kelas', 'asc')
+                                    ->pluck('kelas');
+
+    // Query dasar untuk mengambil mata pelajaran
+    $mataPelajaranQuery = MataPelajaran::where('jenjang_pendidikan', $jenjang)
+                                       ->withCount('soal');
+
+    // Terapkan filter kelas jika dipilih
+    if ($selectedKelas) {
+        $mataPelajaranQuery->where('kelas', $selectedKelas);
     }
+
+    // Terapkan filter tipe (wajib/opsional) jika dipilih
+    if ($selectedTipe === 'wajib') {
+        $mataPelajaranQuery->where('is_wajib', true);
+    } elseif ($selectedTipe === 'opsional') {
+        $mataPelajaranQuery->where('is_wajib', false);
+    }
+
+    // Mengurutkan hasilnya: Wajib dulu, lalu berdasarkan kelas, lalu abjad
+    $mataPelajaran = $mataPelajaranQuery->orderBy('is_wajib', 'desc')
+                                       ->orderBy('kelas', 'asc')
+                                       ->orderBy('nama_mapel', 'asc')
+                                       ->get();
+
+    return view('soal.pilih-mata-pelajaran', compact('jenjang', 'mataPelajaran', 'availableKelas', 'selectedKelas', 'selectedTipe'));
+}
 
     public function index(MataPelajaran $mataPelajaran)
     {

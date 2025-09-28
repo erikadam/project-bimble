@@ -22,18 +22,18 @@ class MataPelajaranController extends Controller
     public function index(Request $request)
     {
         $jenjang = $request->get('jenjang');
+        $kelas = $request->get('kelas');
+        // Tambahkan ->with('guru') untuk mengambil data guru secara efisien
+        $query = MataPelajaran::withCount('soal')->with('guru');
 
-        $mataPelajaran = MataPelajaran::when($jenjang, function ($query, $jenjang) {
-            return $query->where('jenjang_pendidikan', $jenjang);
-        })
-            ->orderBy('jenjang_pendidikan', 'asc')
-            ->orderBy('is_wajib', 'desc')
-            ->orderBy('nama_mapel', 'asc')
-            ->get();
-
-        $jenjangs = MataPelajaran::select('jenjang_pendidikan')->distinct()->get();
-
-        return view('mata-pelajaran.index', compact('mataPelajaran', 'jenjang', 'jenjangs'));
+        if ($jenjang) {
+            $query->where('jenjang_pendidikan', $jenjang);
+        }
+        if ($kelas) {
+            $query->where('kelas', $kelas);
+        }
+        $mataPelajaran = $query->orderBy('jenjang_pendidikan')->orderBy('kelas')->orderBy('nama_mapel')->get();
+        return view('mata-pelajaran.index', compact('mataPelajaran', 'jenjang', 'kelas'));
     }
 
     /**
@@ -49,26 +49,18 @@ class MataPelajaranController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'nama_mapel' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('mata_pelajaran')->where(function ($query) use ($request) {
-                    return $query->where('jenjang_pendidikan', $request->jenjang_pendidikan);
-                }),
-            ],
+        $validatedData = $request->validate([
+            'nama_mapel' => 'required|string|max:255',
             'jenjang_pendidikan' => 'required|string|in:SD,SMP,SMA',
+            'kelas' => 'required|integer|min:1|max:12',
             'is_wajib' => 'required|boolean',
         ]);
 
-        MataPelajaran::create([
-            'nama_mapel' => $request->nama_mapel,
-            'jenjang_pendidikan' => $request->jenjang_pendidikan,
-            'is_wajib' => $request->is_wajib,
-        ]);
+        $validatedData['guru_id'] = auth()->id();
+        MataPelajaran::create($validatedData);
 
-        return redirect()->route('mata-pelajaran.index', ['jenjang' => $request->jenjang_pendidikan])->with('success', 'Mata pelajaran berhasil ditambahkan.');
+        return redirect()->route('mata-pelajaran.index', ['jenjang' => $validatedData['jenjang_pendidikan']])
+                         ->with('success', 'Mata Pelajaran berhasil ditambahkan.');
     }
 
     /**
@@ -92,35 +84,28 @@ class MataPelajaranController extends Controller
      */
     public function update(Request $request, MataPelajaran $mataPelajaran)
     {
-        $request->validate([
-            'nama_mapel' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('mata_pelajaran')
-                    ->where(function ($query) use ($request) {
-                        return $query->where('jenjang_pendidikan', $request->jenjang_pendidikan);
-                    })
-                    ->ignore($mataPelajaran->id),
-            ],
+        $validatedData = $request->validate([
+            'nama_mapel' => 'required|string|max:255',
             'jenjang_pendidikan' => 'required|string|in:SD,SMP,SMA',
+            'kelas' => 'required|integer|min:1|max:12',
+            'is_wajib' => 'required|boolean',
         ]);
 
-        $mataPelajaran->update([
-            'nama_mapel' => $request->nama_mapel,
-            'jenjang_pendidikan' => $request->jenjang_pendidikan,
-        ]);
+        $mataPelajaran->update($validatedData);
 
-        return redirect()->route('mata-pelajaran.index', ['jenjang' => $request->jenjang_pendidikan])->with('success', 'Mata pelajaran berhasil diperbarui.');
+        return redirect()->route('mata-pelajaran.index', ['jenjang' => $validatedData['jenjang_pendidikan']])
+                         ->with('success', 'Mata Pelajaran berhasil diperbarui.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(MataPelajaran $mataPelajaran)
     {
+        $jenjang = $mataPelajaran->jenjang_pendidikan;
+        if ($mataPelajaran->soal()->count() > 0) {
+            return redirect()->route('mata-pelajaran.index', ['jenjang' => $jenjang])
+                             ->with('error', 'Gagal! Hapus dulu semua soal di dalam mata pelajaran ini.');
+        }
         $mataPelajaran->delete();
-
-        return redirect()->route('mata-pelajaran.index', ['jenjang' => $mataPelajaran->jenjang_pendidikan])->with('success', 'Mata pelajaran berhasil dihapus.');
+        return redirect()->route('mata-pelajaran.index', ['jenjang' => $jenjang])
+                         ->with('success', 'Mata Pelajaran berhasil dihapus.');
     }
 }
